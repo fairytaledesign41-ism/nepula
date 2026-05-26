@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" id="htmlRoot">
 <head>
+
+<meta name="robots" content="noindex, nofollow, noarchive">
+
 <link rel="icon" type="image/png" href="logo.png">
 
 <link rel="apple-touch-icon" href="logo.png">
@@ -15,10 +18,41 @@
     if(e.ctrlKey && e.keyCode===85) { e.preventDefault(); return false; }
     if(e.ctrlKey && e.keyCode===83) { e.preventDefault(); return false; }
   });
-  // منع drag
   document.addEventListener('dragstart', function(e){ e.preventDefault(); return false; });
-  // منع select كل
   document.addEventListener('selectstart', function(e){ e.preventDefault(); return false; });
+
+  // ===== BULLETPROOF IN-MEMORY STORAGE FALLBACK =====
+  // Must run synchronously before ANY other JS. If localStorage is blocked
+  // (iOS private mode, Samsung One UI strict privacy, offline containers),
+  // this proxy silently absorbs every call so nothing downstream ever throws.
+  (function() {
+    var _mem = {};
+    var _safeStorage = {
+      getItem:    function(k){ return Object.prototype.hasOwnProperty.call(_mem, k) ? _mem[k] : null; },
+      setItem:    function(k, v){ _mem[k] = String(v); },
+      removeItem: function(k){ delete _mem[k]; },
+      clear:      function(){ _mem = {}; },
+      key:        function(i){ return Object.keys(_mem)[i] || null; },
+      get length(){ return Object.keys(_mem).length; }
+    };
+    try {
+      // Perform a real read/write/delete test — the only reliable method.
+      var _testKey = '__nebula_ls_test__';
+      localStorage.setItem(_testKey, '1');
+      localStorage.removeItem(_testKey);
+      // localStorage works — leave window.localStorage intact.
+    } catch(e) {
+      // localStorage is broken/blocked: install the in-memory proxy globally.
+      try {
+        Object.defineProperty(window, 'localStorage', {
+          value: _safeStorage, writable: false, configurable: true
+        });
+      } catch(e2) {
+        // defineProperty itself failed (very old WebView). Just override directly.
+        window.localStorage = _safeStorage;
+      }
+    }
+  })();
 </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
@@ -33,10 +67,38 @@
 <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Nebula%22%2C%22short_name%22%3A%22Nebula%22%2C%22start_url%22%3A%22.%2Findex.html%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0f17%22%2C%22theme_color%22%3A%22%230b0f17%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22logo.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
 
 <title id="pageTitle">Nebula — متتبع العادات الرقمي</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+<!-- ===== SAFE EXTERNAL RESOURCE LOADING =====
+     All CDN resources load with onerror handlers that suppress failures
+     when the network is absent. App logic checks for library availability
+     before using it, so nothing crashes if a CDN is unreachable offline. -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Cairo:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+      onerror="this.remove()">
+<link rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+      onerror="this.remove()">
+
+<!-- Chart.js — loaded with a safe async pattern; app checks window.Chart before use -->
+<script>
+(function(){
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+  s.onerror = function(){ window._chartJsLoadFailed = true; console.warn('[Nebula] Chart.js failed to load (offline?). Charts will be skipped.'); };
+  document.head.appendChild(s);
+})();
+</script>
+
+<!-- canvas-confetti — optional enhancement; guarded at call sites -->
+<script>
+(function(){
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
+  s.onerror = function(){ console.warn('[Nebula] canvas-confetti failed to load (offline?). Confetti will be skipped.'); };
+  document.head.appendChild(s);
+})();
+</script>
+
 <style>
 :root {
   --bg-deep: #0b0f17;
@@ -265,6 +327,9 @@ html[dir="ltr"] .reward-card .threshold-label { font-size:11px; color:var(--text
 /* ===== CHARTS ===== */
 .chart-card { min-height:320px; }
 .chart-container { position:relative; height:260px; }
+/* Shown when Chart.js failed to load offline */
+.chart-offline-msg { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px; text-align:center; padding:20px; flex-direction:column; gap:8px; }
+.chart-offline-msg i { font-size:28px; opacity:0.3; }
 
 /* ===== MODAL ===== */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); display:none; -webkit-align-items:center; align-items:center; -webkit-justify-content:center; justify-content:center; z-index:500; padding:20px; }
@@ -350,7 +415,7 @@ html[dir="ltr"] .toast { right:28px; }
   overflow:hidden; min-height:480px;
 }
 .notes-sidebar-header {
-  padding:16px 18px; border-bottom:1px solid var(--border);
+  padding:16px 18px; border-bottom:1px solid var(--border); flex-shrink:0;
   display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center;
   -webkit-justify-content:space-between; justify-content:space-between; gap:10px; flex-shrink:0;
 }
@@ -629,7 +694,6 @@ html[dir="ltr"] .toast { right:28px; }
   <section class="section" id="notes">
     <div class="section-title"><i class="fas fa-book-open"></i> <span data-key="titleNotes">Notes &amp; Journal</span></div>
     <div class="notes-layout">
-      <!-- Sidebar: note list -->
       <div class="notes-sidebar">
         <div class="notes-sidebar-header">
           <h3 data-key="navNotes">Notes</h3>
@@ -642,7 +706,6 @@ html[dir="ltr"] .toast { right:28px; }
           </div>
         </div>
       </div>
-      <!-- Editor -->
       <div class="notes-editor" id="notesEditorPanel">
         <div class="notes-editor-header">
           <span class="notes-autosave-status" id="notesStatus">
@@ -653,12 +716,10 @@ html[dir="ltr"] .toast { right:28px; }
             <i class="fas fa-trash-alt"></i>
           </button>
         </div>
-        <!-- Empty state (shown when no note selected) -->
         <div class="notes-empty-editor" id="notesEmptyState">
           <i class="fas fa-pen-nib"></i>
           <p data-key="notesSelectOrCreate">Select a note or create a new one to start writing.</p>
         </div>
-        <!-- Edit area (hidden until a note is opened) -->
         <div id="notesEditArea" style="display:none;-webkit-flex:1;flex:1;display:none;-webkit-flex-direction:column;flex-direction:column;">
           <input type="text" class="notes-title-input" id="notesTitleInput" placeholder="Note title…">
           <textarea class="notes-content-textarea" id="notesBodyInput" placeholder="Start writing your thoughts…"></textarea>
@@ -694,7 +755,14 @@ html[dir="ltr"] .toast { right:28px; }
 <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Saved</span></div>
 
 <script>
+// =============================================================================
+// NEBULA — CRASH-RESISTANT CORE
+// Every major system block is wrapped in independent try/catch.
+// A failure in one block (e.g. Chart.js offline) NEVER freezes another.
+// =============================================================================
+
 // ===================== TRANSLATIONS =====================
+try {
 var i18n = {
   en: {
     pageTitle: 'Nebula — Digital Habit Tracker',
@@ -739,6 +807,7 @@ var i18n = {
     notesTitlePlaceholder: 'Note title…', notesBodyPlaceholder: 'Start writing your thoughts…',
     notesReady: 'Ready', notesSaving: 'Saving…', notesSaved: 'Saved',
     notesUntitled: 'Untitled Note',
+    chartOffline: 'Chart unavailable offline',
   },
   ar: {
     pageTitle: 'نيبولا — متتبع العادات الرقمي',
@@ -783,6 +852,7 @@ var i18n = {
     notesTitlePlaceholder: 'عنوان الملاحظة…', notesBodyPlaceholder: 'ابدأ بكتابة أفكارك…',
     notesReady: 'جاهز', notesSaving: 'جارٍ الحفظ…', notesSaved: 'تم الحفظ',
     notesUntitled: 'ملاحظة بلا عنوان',
+    chartOffline: 'الرسم البياني غير متاح بدون إنترنت',
   },
   fr: {
     pageTitle: 'Nebula — Traqueur d\'Habitudes',
@@ -827,58 +897,79 @@ var i18n = {
     notesTitlePlaceholder: 'Titre de la note…', notesBodyPlaceholder: 'Commencez à écrire…',
     notesReady: 'Prêt', notesSaving: 'Sauvegarde…', notesSaved: 'Sauvegardé',
     notesUntitled: 'Note sans titre',
+    chartOffline: 'Graphique indisponible hors ligne',
   }
 };
+} catch(e) { console.error('[Nebula] i18n init failed:', e); }
 
+// ===================== LANGUAGE & TRANSLATIONS =====================
+try {
 var currentLang = 'ar';
 
 function t(key, replacements) {
-  replacements = replacements || {};
-  var str = (i18n[currentLang] && i18n[currentLang][key]) || i18n['en'][key] || key;
-  var keys = Object.keys(replacements);
-  for (var i = 0; i < keys.length; i++) {
-    str = str.replace('{' + keys[i] + '}', replacements[keys[i]]);
-  }
-  return str;
+  try {
+    replacements = replacements || {};
+    var str = (i18n[currentLang] && i18n[currentLang][key]) || (i18n['en'] && i18n['en'][key]) || key;
+    var keys = Object.keys(replacements);
+    for (var i = 0; i < keys.length; i++) {
+      str = str.replace('{' + keys[i] + '}', replacements[keys[i]]);
+    }
+    return str;
+  } catch(e) { return key; }
 }
 
 function changeLanguage(lang) {
-  currentLang = lang;
-  var html = document.getElementById('htmlRoot');
-  html.lang = lang;
-  html.dir = (lang === 'ar') ? 'rtl' : 'ltr';
-  try { localStorage.setItem('nebula_lang', lang); } catch(e){}
-  applyTranslations();
-  renderAll();
+  try {
+    currentLang = lang;
+    var html = document.getElementById('htmlRoot');
+    if (html) { html.lang = lang; html.dir = (lang === 'ar') ? 'rtl' : 'ltr'; }
+    try { localStorage.setItem('nebula_lang', lang); } catch(e){}
+    applyTranslations();
+    renderAll();
+  } catch(e) { console.error('[Nebula] changeLanguage error:', e); }
 }
 
 function applyTranslations() {
-  var els = document.querySelectorAll('[data-key]');
-  for (var i = 0; i < els.length; i++) {
-    var key = els[i].getAttribute('data-key');
-    if (key && i18n[currentLang] && i18n[currentLang][key]) {
-      els[i].textContent = i18n[currentLang][key];
+  try {
+    var els = document.querySelectorAll('[data-key]');
+    for (var i = 0; i < els.length; i++) {
+      try {
+        var key = els[i].getAttribute('data-key');
+        if (key && i18n[currentLang] && i18n[currentLang][key]) {
+          els[i].textContent = i18n[currentLang][key];
+        }
+      } catch(e2){}
     }
-  }
-  document.getElementById('pageTitle').textContent = t('pageTitle');
-  document.getElementById('newHabitName').placeholder = t('placeholderHabit');
-  document.getElementById('newHabitEmoji').placeholder = t('placeholderEmoji');
-  document.getElementById('rewardName').placeholder = t('placeholderReward');
-  document.getElementById('rewardDesc').placeholder = t('placeholderDesc');
-  // Notes placeholders
-  var nti = document.getElementById('notesTitleInput');
-  var nbi = document.getElementById('notesBodyInput');
-  if(nti) nti.placeholder = t('notesTitlePlaceholder');
-  if(nbi) nbi.placeholder = t('notesBodyPlaceholder');
-  // Update confirm dialog texts
-  document.getElementById('confirmTitle').textContent = t('confirmTitle');
-  document.getElementById('confirmBody').textContent = t('confirmBody');
-  document.getElementById('confirmOkBtn').textContent = t('confirmOk');
-  document.getElementById('confirmCancelBtn').textContent = t('confirmCancel');
-  updateGreeting();
-  updateDateChip();
+    var pt = document.getElementById('pageTitle');
+    if (pt) pt.textContent = t('pageTitle');
+    var nhn = document.getElementById('newHabitName');
+    if (nhn) nhn.placeholder = t('placeholderHabit');
+    var nhe = document.getElementById('newHabitEmoji');
+    if (nhe) nhe.placeholder = t('placeholderEmoji');
+    var rn = document.getElementById('rewardName');
+    if (rn) rn.placeholder = t('placeholderReward');
+    var rd = document.getElementById('rewardDesc');
+    if (rd) rd.placeholder = t('placeholderDesc');
+    var nti = document.getElementById('notesTitleInput');
+    var nbi = document.getElementById('notesBodyInput');
+    if (nti) nti.placeholder = t('notesTitlePlaceholder');
+    if (nbi) nbi.placeholder = t('notesBodyPlaceholder');
+    var ct = document.getElementById('confirmTitle');
+    var cb = document.getElementById('confirmBody');
+    var cok = document.getElementById('confirmOkBtn');
+    var ccan = document.getElementById('confirmCancelBtn');
+    if (ct) ct.textContent = t('confirmTitle');
+    if (cb) cb.textContent = t('confirmBody');
+    if (cok) cok.textContent = t('confirmOk');
+    if (ccan) ccan.textContent = t('confirmCancel');
+    updateGreeting();
+    updateDateChip();
+  } catch(e) { console.error('[Nebula] applyTranslations error:', e); }
 }
+} catch(e) { console.error('[Nebula] Language module failed:', e); }
 
+// ===================== UTILITIES =====================
+try {
 function getCatKey(cat) {
   var map = {
     'الدين والصلاة': 'catReligion', 'Religion & Prayer': 'catReligion', 'Religion & Prière': 'catReligion',
@@ -894,6 +985,39 @@ function translateCategory(cat) { return t(getCatKey(cat)); }
 var now = new Date();
 var todayKey = function() { return fmtDate(now); };
 
+function fmtDate(d){ try { var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; } catch(e){ return ''; } }
+function pad(n){ return String(n).padStart(2,'0'); }
+function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function getDayKey(y,m,d){ return y+'-'+pad(m+1)+'-'+pad(d); }
+function getLocale() { return currentLang==='ar'?'ar-SA':currentLang==='fr'?'fr-FR':'en-US'; }
+function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// String.prototype.padStart polyfill for older browsers / WebViews
+if (!String.prototype.padStart) {
+  String.prototype.padStart = function(targetLength, padString) {
+    padString = padString || ' ';
+    if (this.length >= targetLength) return String(this);
+    var padding = '';
+    while (padding.length < targetLength - this.length) { padding += padString; }
+    return padding + String(this);
+  };
+}
+
+var catColorMap = {
+  'catReligion': { color:'#a855f7', glow:'rgba(168,85,247,0.35)', bg:'rgba(168,85,247,0.12)' },
+  'catHealth': { color:'#34d399', glow:'rgba(52,211,153,0.35)', bg:'rgba(52,211,153,0.12)' },
+  'catProductivity': { color:'#38bdf8', glow:'rgba(56,189,248,0.35)', bg:'rgba(56,189,248,0.12)' },
+  'catWellness': { color:'#f472b6', glow:'rgba(244,114,182,0.35)', bg:'rgba(244,114,182,0.12)' },
+  'catFitness': { color:'#fbbf24', glow:'rgba(251,191,36,0.35)', bg:'rgba(251,191,36,0.12)' },
+};
+var catIconMap = { 'catReligion':'fa-pray', 'catHealth':'fa-heartbeat', 'catProductivity':'fa-bolt', 'catWellness':'fa-spa', 'catFitness':'fa-dumbbell' };
+
+function getCatStyle(catName) { return catColorMap[getCatKey(catName)] || catColorMap['catWellness']; }
+function getCatIcon(catName) { return catIconMap[getCatKey(catName)] || 'fa-star'; }
+} catch(e) { console.error('[Nebula] Utilities module failed:', e); }
+
+// ===================== DEFAULT DATA =====================
+try {
 function getDefaultHabits() {
   return [
     { id:'h1', name: t('habitPrayer'), emoji:'🙏', category: t('catReligion') },
@@ -921,582 +1045,738 @@ var state = {
   habits: [], completions: {}, rewards: [],
   trackerMonth: new Date(now.getFullYear(), now.getMonth(), 1),
 };
+} catch(e) { console.error('[Nebula] Default data module failed:', e); }
 
-var catColorMap = {
-  'catReligion': { color:'#a855f7', glow:'rgba(168,85,247,0.35)', bg:'rgba(168,85,247,0.12)' },
-  'catHealth': { color:'#34d399', glow:'rgba(52,211,153,0.35)', bg:'rgba(52,211,153,0.12)' },
-  'catProductivity': { color:'#38bdf8', glow:'rgba(56,189,248,0.35)', bg:'rgba(56,189,248,0.12)' },
-  'catWellness': { color:'#f472b6', glow:'rgba(244,114,182,0.35)', bg:'rgba(244,114,182,0.12)' },
-  'catFitness': { color:'#fbbf24', glow:'rgba(251,191,36,0.35)', bg:'rgba(251,191,36,0.12)' },
-};
-var catIconMap = { 'catReligion':'fa-pray', 'catHealth':'fa-heartbeat', 'catProductivity':'fa-bolt', 'catWellness':'fa-spa', 'catFitness':'fa-dumbbell' };
-
-function getCatStyle(catName) { return catColorMap[getCatKey(catName)] || catColorMap['catWellness']; }
-function getCatIcon(catName) { return catIconMap[getCatKey(catName)] || 'fa-star'; }
-function fmtDate(d){ var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; }
-function pad(n){ return String(n).padStart(2,'0'); }
-function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
-function getDayKey(y,m,d){ return y+'-'+pad(m+1)+'-'+pad(d); }
-function getLocale() { return currentLang==='ar'?'ar-SA':currentLang==='fr'?'fr-FR':'en-US'; }
-
-// String.prototype.padStart polyfill for older browsers
-if (!String.prototype.padStart) {
-  String.prototype.padStart = function(targetLength, padString) {
-    padString = padString || ' ';
-    if (this.length >= targetLength) return String(this);
-    var padding = '';
-    while (padding.length < targetLength - this.length) { padding += padString; }
-    return padding + String(this);
-  };
-}
-
-function init(){
-  var savedLang;
-  try { savedLang = localStorage.getItem('nebula_lang'); } catch(e){}
-  if(savedLang && i18n[savedLang]) {
-    currentLang = savedLang;
-    document.getElementById('langSelect').value = savedLang;
-    var html = document.getElementById('htmlRoot');
-    html.lang = savedLang;
-    html.dir = (savedLang === 'ar') ? 'rtl' : 'ltr';
-  }
-  applyTranslations();
-  state.habits = getDefaultHabits();
-  state.rewards = getDefaultRewards();
-  loadFromStorage();
-  updateDateChip();
-  renderAll();
-  initNotes();
-  initQuotes();
-  setInterval(function(){ updateGreeting(); updateDateChip(); }, 60000);
-  checkBackupReminder();
-  setInterval(checkBackupReminder, 3600000);
-}
-
-function updateGreeting(){
-  var h = new Date().getHours();
-  var key = 'greetingMorning';
-  if(h>=12 && h<17) key='greetingAfternoon';
-  else if(h>=17) key='greetingEvening';
-  document.getElementById('greetingText').textContent = t(key);
-}
-function updateDateChip(){
-  var opts = {weekday:'long', year:'numeric', month:'long', day:'numeric'};
-  try {
-    document.getElementById('currentDateChip').textContent = now.toLocaleDateString(getLocale(), opts);
-  } catch(e) {
-    document.getElementById('currentDateChip').textContent = now.toLocaleDateString('en-US', opts);
-  }
-}
-
-// FIX: navigate now takes the element as parameter — works on all browsers
-function navigate(el, id){
-  var navItems = document.querySelectorAll('.nav-item');
-  for(var i=0; i<navItems.length; i++) navItems[i].classList.remove('active');
-  el.classList.add('active');
-  var sections = document.querySelectorAll('.section');
-  for(var i=0; i<sections.length; i++) sections[i].classList.remove('active');
-  document.getElementById(id).classList.add('active');
-  renderAll();
-}
-function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('expanded'); }
-
-function renderAll(){
-  populateCategorySelects();
-  renderDashboard();
-  renderTracker();
-  renderSetup();
-  renderRewards();
-  renderAnalytics();
-}
-
-function populateCategorySelects(){
-  var opts = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-  var sel1 = document.getElementById('newHabitCat');
-  var sel2 = document.getElementById('rewardCat');
-  var old1 = sel1.value; var old2 = sel2.value;
-  sel1.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
-  sel2.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
-  if(old1 && opts.indexOf(old1)!==-1) sel1.value = old1;
-  if(old2 && opts.indexOf(old2)!==-1) sel2.value = old2;
-}
-
-var dashRingChart, weeklyChartInst, categoryChartInst;
-
-function renderDashboard(){
-  var stats = computeStats();
-  var overallPct=stats.overallPct, totalChecks=stats.totalChecks, currentStreak=stats.currentStreak;
-  var bestStreak=stats.bestStreak, todayDone=stats.todayDone, todayTotal=stats.todayTotal, todayPct=stats.todayPct;
-  var ringCtx = document.getElementById('dashRing').getContext('2d');
-  if(dashRingChart) dashRingChart.destroy();
-  dashRingChart = new Chart(ringCtx,{
-    type:'doughnut',
-    data:{ labels:[t('lblCompleted'), t('lblIncomplete')], datasets:[{ data:[overallPct, Math.max(0,100-overallPct)], backgroundColor:['#a855f7','rgba(255,255,255,0.04)'], borderWidth:0, hoverOffset:0 }] },
-    options:{ cutout:'78%', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{ animateScale:true, animateRotate:true } }
-  });
-  document.getElementById('dashPct').textContent = Math.round(overallPct)+'%';
-  document.getElementById('dashStreak').textContent = currentStreak;
-  document.getElementById('dashBestStreak').textContent = bestStreak;
-  document.getElementById('dashTotal').textContent = totalChecks;
-  document.getElementById('dashToday').textContent = todayDone+'/'+todayTotal;
-  document.getElementById('dashTodayPct').textContent = Math.round(todayPct);
-
-  var weeklyData = getWeeklyData();
-  var wCtx = document.getElementById('weeklyChart').getContext('2d');
-  if(weeklyChartInst) weeklyChartInst.destroy();
-  weeklyChartInst = new Chart(wCtx,{
-    type:'bar',
-    data:{ labels: weeklyData.labels, datasets:[{ label: t('chartCompletionPct'), data: weeklyData.data, backgroundColor: weeklyData.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:8, barThickness:22 }] },
-    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-  });
-
-  var catData = getCategoryBreakdown();
-  var cCtx = document.getElementById('categoryChart').getContext('2d');
-  if(categoryChartInst) categoryChartInst.destroy();
-  categoryChartInst = new Chart(cCtx,{
-    type:'doughnut',
-    data:{ labels: catData.labels.map(translateCategory), datasets:[{ data: catData.data, backgroundColor: catData.colors, borderWidth:0, hoverOffset:8 }] },
-    options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{ position: currentLang==='ar'?'left':'right', labels:{color:'#94a3b8',font:{size:11},padding:16} }, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-  });
-}
-
-function computeStats(){
-  var keys = Object.keys(state.completions);
-  var totalChecks=0, totalSlots=0, currentStreak=0, bestStreak=0, tempStreak=0;
-  var todayDone=0, todayTotal=state.habits.length;
-  var tKey = todayKey();
-  if(state.completions[tKey]){
-    for(var i=0;i<state.habits.length;i++){ if(state.completions[tKey][state.habits[i].id]) todayDone++; }
-  }
-  var sorted = keys.slice().sort();
-  var prevDate = null;
-  for(var ki=0; ki<sorted.length; ki++){
-    var k = sorted[ki];
-    var dayDone = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
-    totalChecks += dayDone; totalSlots += state.habits.length;
-    var d = new Date(k);
-    if(prevDate){
-      var diff = (d - prevDate)/(1000*60*60*24);
-      if(diff===1 && dayDone===state.habits.length) tempStreak++;
-      else if(dayDone===state.habits.length) tempStreak=1;
-      else tempStreak=0;
-    } else { if(dayDone===state.habits.length) tempStreak=1; }
-    bestStreak = Math.max(bestStreak, tempStreak); prevDate = d;
-  }
-  var check = new Date(); currentStreak=0;
-  while(true){
-    var ck = fmtDate(check);
-    var done = state.habits.filter(function(h){ return state.completions[ck]&&state.completions[ck][h.id]; }).length;
-    if(done===state.habits.length && state.habits.length>0){ currentStreak++; check.setDate(check.getDate()-1); } else break;
-  }
-  var overallPct = totalSlots ? (totalChecks/totalSlots)*100 : 0;
-  var todayPct = todayTotal ? (todayDone/todayTotal)*100 : 0;
-  return { overallPct:overallPct, totalChecks:totalChecks, currentStreak:currentStreak, bestStreak:bestStreak, todayDone:todayDone, todayTotal:todayTotal, todayPct:todayPct };
-}
-
-function getWeeklyData(){
-  var labels=[], data=[];
-  var d = new Date(); d.setDate(d.getDate()-6);
-  for(var i=0;i<7;i++){
-    var k=fmtDate(d);
-    try { labels.push(d.toLocaleDateString(getLocale(),{weekday:'short'})); }
-    catch(e){ labels.push(d.toLocaleDateString('en-US',{weekday:'short'})); }
-    var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
-    data.push(state.habits.length ? Math.round((done/state.habits.length)*100) : 0);
-    d.setDate(d.getDate()+1);
-  }
-  return { labels:labels, data:data };
-}
-
-function getCategoryBreakdown(){
-  var catMap={}; var total=0;
-  state.habits.forEach(function(h){ var cat=h.category; if(!catMap[cat]) catMap[cat]={done:0,total:0}; catMap[cat].total++; });
-  Object.keys(state.completions).forEach(function(k){ state.habits.forEach(function(h){ if(state.completions[k][h.id]){ catMap[h.category].done++; total++; } }); });
-  var labels=[], data=[], colors=[];
-  Object.keys(catMap).forEach(function(cat){ labels.push(cat); data.push(catMap[cat].done); colors.push(getCatStyle(cat).color); });
-  return { labels:labels, data:data, colors:colors };
-}
-
-function changeTrackerMonth(dir){ state.trackerMonth.setMonth(state.trackerMonth.getMonth()+dir); renderTracker(); }
-function resetTrackerMonth(){ state.trackerMonth=new Date(now.getFullYear(),now.getMonth(),1); renderTracker(); }
-
-function renderTracker(){
-  var grid = document.getElementById('heatmapGrid');
-  var y = state.trackerMonth.getFullYear(), m = state.trackerMonth.getMonth(), dim = daysInMonth(y,m);
-  try { document.getElementById('trackerMonthLabel').textContent = state.trackerMonth.toLocaleDateString(getLocale(),{month:'long',year:'numeric'}); }
-  catch(e){ document.getElementById('trackerMonthLabel').textContent = state.trackerMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
-  var prevBtn = document.getElementById('btnPrevMonth');
-  var nextBtn = document.getElementById('btnNextMonth');
-  if(currentLang === 'ar') { prevBtn.className = 'fas fa-chevron-right'; nextBtn.className = 'fas fa-chevron-left'; }
-  else { prevBtn.className = 'fas fa-chevron-left'; nextBtn.className = 'fas fa-chevron-right'; }
-  grid.style.setProperty('grid-template-columns', '160px repeat('+dim+', 32px)', 'important');
-  grid.style.setProperty('width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
-  grid.style.setProperty('min-width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
-  grid.innerHTML = '';
-  grid.appendChild(cell(t('titleSetup').split(' ')[0]+' / '+t('btnToday'),'habit-label'));
-  for(var d=1; d<=dim; d++){
-    var isToday = (d===now.getDate() && m===now.getMonth() && y===now.getFullYear());
-    var c = cell(d, 'day-num');
-    if(isToday){ c.style.color='var(--neon-purple)'; c.style.fontWeight='800'; }
-    grid.appendChild(c);
-  }
-  state.habits.forEach(function(h){
-    var lbl = document.createElement('div'); lbl.className='heatmap-cell habit-label';
-    lbl.innerHTML = '<span class="habit-emoji">'+h.emoji+'</span><span>'+escapeHtml(h.name)+'</span>';
-    grid.appendChild(lbl);
-    for(var d=1; d<=dim; d++){
-      var dk = getDayKey(y,m,d);
-      var checked = !!(state.completions[dk] && state.completions[dk][h.id]);
-      var c = cell('', checked?'checked':'');
-      c.dataset.date = dk; c.dataset.hid = h.id;
-      (function(dk, hid, c){
-        c.onclick = function(){ toggleHabitDay(dk, hid, c); };
-      })(dk, h.id, c);
-      grid.appendChild(c);
-    }
-  });
-}
-
-function cell(text, cls){ var d=document.createElement('div'); d.className='heatmap-cell'+(cls?' '+cls:''); d.textContent=text; return d; }
-
-function escapeHtml(str){
-  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function toggleHabitDay(dateKey, hid, el){
-  if(!state.completions[dateKey]) state.completions[dateKey]={};
-  var was = !!state.completions[dateKey][hid];
-  if(was) delete state.completions[dateKey][hid]; else state.completions[dateKey][hid]=true;
-  markUnsaved();
-  if(!was){
-    el.classList.add('checked','heatmap-check-anim');
-    setTimeout(function(){ el.classList.remove('heatmap-check-anim'); }, 500);
-    var rect = el.getBoundingClientRect();
-    var habit = null;
-    for(var i=0;i<state.habits.length;i++){ if(state.habits[i].id===hid){ habit=state.habits[i]; break; } }
-    var col = getCatStyle(habit?habit.category:'').color || '#34d399';
-    confetti({ particleCount:18, spread:50, origin:{ x:(rect.left+rect.width/2)/window.innerWidth, y:(rect.top+rect.height/2)/window.innerHeight }, colors:[col] });
-  } else { el.classList.remove('checked'); }
-  saveToStorage(); renderAll(); checkRewards();
-}
-
-function renderSetup(){
-  var list = document.getElementById('setupList'); list.innerHTML = '';
-  state.habits.forEach(function(h){
-    var row = document.createElement('div'); row.className='setup-item';
-    var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-    var catStyle = getCatStyle(h.category);
-    row.innerHTML =
-      '<div class="emoji-btn" contenteditable="true" data-hid="'+h.id+'">'+h.emoji+'</div>'+
-      '<input value="'+escapeHtml(h.name)+'" data-hid="'+h.id+'" class="habit-name-input" placeholder="'+t('placeholderHabit')+'">'+
-      '<select data-hid="'+h.id+'" class="habit-cat-select">'+cats.map(function(c){ return '<option value="'+c+'"'+(c===h.category?' selected':'')+'>'+c+'</option>'; }).join('')+'</select>'+
-      '<div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:'+catStyle.color+';display:inline-block;box-shadow:0 0 8px '+catStyle.glow+';"></span>'+escapeHtml(h.category)+'</div>'+
-      '<button class="del-btn" data-hid="'+h.id+'"><i class="fas fa-trash-alt"></i></button>';
-    // events
-    row.querySelector('.emoji-btn').addEventListener('blur', function(){ updateEmoji(this.getAttribute('data-hid'), this); });
-    row.querySelector('.habit-name-input').addEventListener('change', function(){ updateHabitName(this.getAttribute('data-hid'), this.value); });
-    row.querySelector('.habit-cat-select').addEventListener('change', function(){ updateHabitCat(this.getAttribute('data-hid'), this.value); });
-    row.querySelector('.del-btn').addEventListener('click', function(){ deleteHabit(this.getAttribute('data-hid')); });
-    list.appendChild(row);
-  });
-  document.getElementById('habitCount').textContent = t('habitCount', {n: state.habits.length});
-  var cg = document.getElementById('catGrid'); cg.innerHTML = '';
-  [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')].forEach(function(cat){
-    var habitsInCat = state.habits.filter(function(h){ return h.category===cat; });
-    var style = getCatStyle(cat);
-    var card = document.createElement('div'); card.className='card'; card.style.borderTop = '3px solid '+style.color;
-    var habitsHtml = habitsInCat.map(function(h){ return '<span style="background:var(--bg-deep);border:1px solid var(--border);padding:4px 10px;border-radius:8px;font-size:12px;">'+h.emoji+' '+escapeHtml(h.name)+'</span>'; }).join('');
-    if(!habitsInCat.length) habitsHtml = '<span style="font-size:12px;color:var(--text-muted);">'+t('noHabitsYet')+'</span>';
-    card.innerHTML =
-      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
-        '<div style="width:36px;height:36px;border-radius:10px;background:'+style.bg+';display:flex;align-items:center;justify-content:center;color:'+style.color+';box-shadow:0 0 12px '+style.glow+';"><i class="fas '+getCatIcon(cat)+'"></i></div>'+
-        '<div><div style="font-weight:700;font-size:14px;">'+cat+'</div><div style="font-size:12px;color:var(--text-muted);">'+habitsInCat.length+'</div></div>'+
-      '</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+habitsHtml+'</div>';
-    cg.appendChild(card);
-  });
-}
-
-function addHabit(){
-  var name = document.getElementById('newHabitName').value.trim();
-  var cat = document.getElementById('newHabitCat').value;
-  var emoji = document.getElementById('newHabitEmoji').value.trim()||'✨';
-  if(!name){ showToast(t('msgEnterHabit'),'info'); return; }
-  state.habits.push({ id:'h'+Date.now(), name:name, emoji:emoji, category:cat }); markUnsaved();
-  document.getElementById('newHabitName').value=''; saveToStorage(); renderAll(); showToast(t('msgAddedHabit'),'success');
-}
-function updateEmoji(hid, el){ var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.emoji=el.textContent.trim(); saveToStorage(); renderAll(); } }
-function updateHabitName(hid, val){ var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.name=val; saveToStorage(); renderAll(); } }
-function updateHabitCat(hid, val){ var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.category=val; saveToStorage(); renderAll(); } }
-function deleteHabit(hid){
-  state.habits=state.habits.filter(function(x){ return x.id!==hid; });
-  Object.keys(state.completions).forEach(function(k){ delete state.completions[k][hid]; });
-  saveToStorage(); renderAll(); showToast(t('msgRemovedHabit'),'info');
-}
-
-function renderRewards(){
-  var grid = document.getElementById('rewardsGrid'); grid.innerHTML = '';
-  state.rewards.forEach(function(r){
-    var pct = getCategoryCompletion(r.category); var unlocked = pct >= r.threshold; var prev = r.unlocked;
-    r.unlocked = unlocked; if(unlocked && !prev) triggerRewardUnlock(r);
-    var card = document.createElement('div'); card.className = 'reward-card '+(unlocked?'unlocked':'locked');
-    var cinfo = getCatStyle(r.category);
-    card.innerHTML =
-      '<div class="reward-badge">'+(unlocked?t('unlocked'):t('locked'))+'</div>'+
-      '<div class="reward-title">'+(r.emoji||'🎁')+' '+escapeHtml(r.name)+'</div>'+
-      '<div class="reward-desc">'+escapeHtml(r.desc)+'</div>'+
-      '<div class="reward-meta"><span class="dot" style="background:'+cinfo.color+';box-shadow:0 0 6px '+cinfo.glow+';"></span> '+escapeHtml(r.category)+' · '+t('atThreshold')+' '+r.threshold+'%</div>'+
-      '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+Math.min(pct,100)+'%;background:'+cinfo.color+';box-shadow:0 0 10px '+cinfo.glow+';"></div></div>'+
-      '<div class="threshold-label">'+Math.round(pct)+'% / '+r.threshold+'%</div>'+
-      '<div class="celebration-overlay"><div class="sparkle">✨</div></div>';
-    grid.appendChild(card);
-  });
-}
-
-function getCategoryCompletion(cat){
-  var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return 0;
-  var done=0, total=0;
-  Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
-  return total ? (done/total)*100 : 0;
-}
-
-function triggerRewardUnlock(r){
-  confetti({ particleCount:120, spread:80, origin:{y:0.6}, colors:['#fbbf24','#f472b6','#a855f7','#38bdf8'] });
-  document.getElementById('modalIcon').textContent = '🎉';
-  document.getElementById('modalTitle').textContent = t('modalRewardTitle')+' '+r.name;
-  document.getElementById('modalBody').textContent = t('atThreshold')+' '+r.threshold+'% '+t('subByCompletion').toLowerCase()+' '+r.category+'! '+r.desc;
-  document.getElementById('modal').classList.add('show'); saveToStorage();
-}
-
-function addReward(){
-  var name = document.getElementById('rewardName').value.trim();
-  var desc = document.getElementById('rewardDesc').value.trim();
-  var cat = document.getElementById('rewardCat').value;
-  var threshold = parseInt(document.getElementById('rewardThreshold').value);
-  if(!name){ showToast(t('msgEnterReward'),'info'); return; }
-  state.rewards.push({ id:'r'+Date.now(), name:name, desc:desc, category:cat, threshold:threshold, unlocked:false });
-  document.getElementById('rewardName').value=''; document.getElementById('rewardDesc').value='';
-  saveToStorage(); renderAll(); showToast(t('msgAddedReward'),'success');
-}
-function checkRewards(){ renderRewards(); }
-function closeModal(){ document.getElementById('modal').classList.remove('show'); }
-
-// ===== RESET PLANNER =====
-function showResetConfirm(){
-  document.getElementById('confirmTitle').textContent = t('confirmTitle');
-  document.getElementById('confirmBody').textContent = t('confirmBody');
-  document.getElementById('confirmOkBtn').textContent = t('confirmOk');
-  document.getElementById('confirmCancelBtn').textContent = t('confirmCancel');
-  document.getElementById('confirmOverlay').classList.add('show');
-}
-function hideResetConfirm(){
-  document.getElementById('confirmOverlay').classList.remove('show');
-}
-function doReset(){
-  try {
-    localStorage.removeItem('nebula_habit_tracker_multi');
-    localStorage.removeItem('nebula_lang');
-    localStorage.removeItem('nebula_last_backup');
-    localStorage.removeItem('nebula_notes');
-    localStorage.removeItem('nebula_quote_idx');
-  } catch(e){}
-  hideResetConfirm();
-  window.location.reload();
-}
-
-var monthlyTrendInst, streakInst, dailyRateInst, radarInst;
-
-function renderAnalytics(){
-  var mt = getMonthlyTrend();
-  var mtCtx = document.getElementById('monthlyTrendChart').getContext('2d');
-  if(monthlyTrendInst) monthlyTrendInst.destroy();
-  monthlyTrendInst = new Chart(mtCtx,{
-    type:'line',
-    data:{ labels:mt.labels, datasets:[{ label: t('chartCompletionPct'), data:mt.data, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.1)', fill:true, tension:0.4, pointBackgroundColor:'#a855f7', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
-    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-  });
-  var sc = getCategoryStreaks();
-  var scCtx = document.getElementById('streakChart').getContext('2d');
-  if(streakInst) streakInst.destroy();
-  streakInst = new Chart(scCtx,{
-    type:'bar',
-    data:{ labels:sc.labels.map(translateCategory), datasets:[{ label: t('chartStreakDays'), data:sc.data, backgroundColor:sc.colors, borderRadius:8, barThickness:28 }] },
-    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ beginAtZero:true, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, y:{ grid:{display:false}, ticks:{color:'#94a3b8',font:{size:12}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-  });
-  var dr = getDailyRateThisMonth();
-  var drCtx = document.getElementById('dailyRateChart').getContext('2d');
-  if(dailyRateInst) dailyRateInst.destroy();
-  dailyRateInst = new Chart(drCtx,{
-    type:'bar',
-    data:{ labels:dr.labels, datasets:[{ label:'%', data:dr.data, backgroundColor:dr.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:4, barThickness:6 }] },
-    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:10}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:9},maxRotation:0} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-  });
-  var rd = getRadarData();
-  var rdCtx = document.getElementById('radarChart').getContext('2d');
-  if(radarInst) radarInst.destroy();
-  radarInst = new Chart(rdCtx,{
-    type:'radar',
-    data:{ labels:rd.labels.map(translateCategory), datasets:[{ label: t('chartScore'), data:rd.data, borderColor:'#f472b6', backgroundColor:'rgba(244,114,182,0.15)', pointBackgroundColor:'#f472b6', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
-    options:{ responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.06)'}, pointLabels:{color:'#94a3b8',font:{size:11}}, ticks:{display:false} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-  });
-}
-
-function getMonthlyTrend(){
-  var labels=[], data=[]; var d = new Date(); d.setMonth(d.getMonth()-5);
-  for(var i=0;i<6;i++){
-    var y=d.getFullYear(), m=d.getMonth();
-    try { labels.push(d.toLocaleDateString(getLocale(),{month:'short'})); }
-    catch(e){ labels.push(d.toLocaleDateString('en-US',{month:'short'})); }
-    var dim=daysInMonth(y,m); var done=0, total=0;
-    for(var day=1; day<=dim; day++){
-      var k=getDayKey(y,m,day);
-      state.habits.forEach(function(h){ total++; if(state.completions[k]&&state.completions[k][h.id]) done++; });
-    }
-    data.push(total?Math.round((done/total)*100):0); d.setMonth(d.getMonth()+1);
-  }
-  return { labels:labels, data:data };
-}
-
-function getCategoryStreaks(){
-  var labels=[], data=[], colors=[];
-  var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-  cats.forEach(function(cat){
-    var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
-    labels.push(cat); colors.push(getCatStyle(cat).color); var streak=0; var check = new Date();
-    while(true){
-      var k=fmtDate(check);
-      var allDone = habits.every(function(h){ return state.completions[k]&&state.completions[k][h.id]; });
-      if(allDone){ streak++; check.setDate(check.getDate()-1); } else break;
-    }
-    data.push(streak);
-  });
-  return { labels:labels, data:data, colors:colors };
-}
-
-function getDailyRateThisMonth(){
-  var labels=[], data=[];
-  var y=now.getFullYear(), m=now.getMonth(); var dim=daysInMonth(y,m);
-  for(var d=1; d<=dim; d++){
-    labels.push(String(d));
-    var k=getDayKey(y,m,d);
-    var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
-    data.push(state.habits.length?Math.round((done/state.habits.length)*100):0);
-  }
-  return { labels:labels, data:data };
-}
-
-function getRadarData(){
-  var labels=[], data=[];
-  var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-  cats.forEach(function(cat){
-    var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
-    labels.push(cat); var done=0, total=0;
-    Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
-    data.push(total?Math.round((done/total)*100):0);
-  });
-  return { labels:labels, data:data };
-}
-
+// ===================== STORAGE =====================
+try {
 function saveToStorage(){
   try {
     localStorage.setItem('nebula_habit_tracker_multi', JSON.stringify(state));
     setUnsavedIndicator(false);
-  } catch(e){}
+  } catch(e){ console.warn('[Nebula] saveToStorage failed (likely in-memory fallback is active):', e); }
 }
 
 var _unsavedTimer = null;
 function markUnsaved(){
-  setUnsavedIndicator(true);
-  clearTimeout(_unsavedTimer);
-  _unsavedTimer = setTimeout(saveToStorage, 800);
+  try {
+    setUnsavedIndicator(true);
+    clearTimeout(_unsavedTimer);
+    _unsavedTimer = setTimeout(saveToStorage, 800);
+  } catch(e){}
 }
+
 function setUnsavedIndicator(unsaved){
-  var dot = document.getElementById('unsavedDot');
-  var btn = document.getElementById('saveBtn');
-  if(!dot || !btn) return;
-  if(unsaved){ dot.style.display='inline-block'; btn.title=t('msgUnsaved'); }
-  else { dot.style.display='none'; btn.title=t('msgAllSaved'); }
+  try {
+    var dot = document.getElementById('unsavedDot');
+    var btn = document.getElementById('saveBtn');
+    if(!dot || !btn) return;
+    if(unsaved){ dot.style.display='inline-block'; btn.title=t('msgUnsaved'); }
+    else { dot.style.display='none'; btn.title=t('msgAllSaved'); }
+  } catch(e){}
 }
+
 function loadFromStorage(){
   try {
     var raw = localStorage.getItem('nebula_habit_tracker_multi');
     if(raw){
-      var parsed=JSON.parse(raw);
-      if(parsed.habits && parsed.habits.length) state.habits = parsed.habits;
-      if(parsed.rewards && parsed.rewards.length) state.rewards = parsed.rewards;
-      if(parsed.completions) state.completions = parsed.completions;
+      var parsed = JSON.parse(raw);
+      if(parsed && parsed.habits && parsed.habits.length) state.habits = parsed.habits;
+      if(parsed && parsed.rewards && parsed.rewards.length) state.rewards = parsed.rewards;
+      if(parsed && parsed.completions) state.completions = parsed.completions;
     }
-  } catch(e){}
+  } catch(e){ console.warn('[Nebula] loadFromStorage failed, using defaults:', e); }
+}
+} catch(e) { console.error('[Nebula] Storage module failed:', e); }
+
+// ===================== SAFE CHART HELPER =====================
+// Centralises Chart.js guard. If Chart.js failed to load (offline),
+// shows a graceful offline message instead of crashing.
+try {
+function safeChart(canvasId, config) {
+  try {
+    if (typeof Chart === 'undefined') {
+      var container = document.getElementById(canvasId);
+      if (container && container.parentNode) {
+        container.parentNode.innerHTML =
+          '<div class="chart-offline-msg"><i class="fas fa-wifi-slash"></i><span>'+t('chartOffline')+'</span></div>';
+      }
+      return null;
+    }
+    var canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    return new Chart(ctx, config);
+  } catch(e) {
+    console.warn('[Nebula] Chart render failed for', canvasId, e);
+    try {
+      var container2 = document.getElementById(canvasId);
+      if (container2 && container2.parentNode) {
+        container2.parentNode.innerHTML =
+          '<div class="chart-offline-msg"><i class="fas fa-exclamation-triangle"></i><span>'+t('chartOffline')+'</span></div>';
+      }
+    } catch(e2){}
+    return null;
+  }
 }
 
+// Safe confetti — silently no-ops if library absent or canvas unavailable
+function safeConfetti(opts) {
+  try {
+    if (typeof confetti === 'function') { confetti(opts); }
+  } catch(e){ console.warn('[Nebula] confetti failed:', e); }
+}
+} catch(e) { console.error('[Nebula] Chart helper module failed:', e); }
+
+// ===================== NAVIGATION =====================
+try {
+function navigate(el, id){
+  try {
+    var navItems = document.querySelectorAll('.nav-item');
+    for(var i=0; i<navItems.length; i++) navItems[i].classList.remove('active');
+    el.classList.add('active');
+    var sections = document.querySelectorAll('.section');
+    for(var i=0; i<sections.length; i++) sections[i].classList.remove('active');
+    var sec = document.getElementById(id);
+    if (sec) sec.classList.add('active');
+    renderAll();
+  } catch(e) { console.error('[Nebula] navigate error:', e); }
+}
+
+function toggleSidebar(){
+  try { document.getElementById('sidebar').classList.toggle('expanded'); } catch(e){}
+}
+} catch(e) { console.error('[Nebula] Navigation module failed:', e); }
+
+// ===================== GREETING & DATE =====================
+try {
+function updateGreeting(){
+  try {
+    var h = new Date().getHours();
+    var key = 'greetingMorning';
+    if(h>=12 && h<17) key='greetingAfternoon';
+    else if(h>=17) key='greetingEvening';
+    var el = document.getElementById('greetingText');
+    if (el) el.textContent = t(key);
+  } catch(e){ console.error('[Nebula] updateGreeting error:', e); }
+}
+
+function updateDateChip(){
+  try {
+    var el = document.getElementById('currentDateChip');
+    if (!el) return;
+    var d = new Date();
+    var opts = {weekday:'long', year:'numeric', month:'long', day:'numeric'};
+    try { el.textContent = d.toLocaleDateString(getLocale(), opts); }
+    catch(e){ try { el.textContent = d.toLocaleDateString('en-US', opts); } catch(e2){} }
+  } catch(e){ console.error('[Nebula] updateDateChip error:', e); }
+}
+} catch(e) { console.error('[Nebula] Greeting module failed:', e); }
+
+// ===================== RENDER ALL =====================
+try {
+function renderAll(){
+  try { populateCategorySelects(); } catch(e){ console.error('[Nebula] populateCategorySelects:', e); }
+  try { renderDashboard(); } catch(e){ console.error('[Nebula] renderDashboard:', e); }
+  try { renderTracker(); } catch(e){ console.error('[Nebula] renderTracker:', e); }
+  try { renderSetup(); } catch(e){ console.error('[Nebula] renderSetup:', e); }
+  try { renderRewards(); } catch(e){ console.error('[Nebula] renderRewards:', e); }
+  try { renderAnalytics(); } catch(e){ console.error('[Nebula] renderAnalytics:', e); }
+}
+
+function populateCategorySelects(){
+  try {
+    var opts = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+    var sel1 = document.getElementById('newHabitCat');
+    var sel2 = document.getElementById('rewardCat');
+    if (!sel1 || !sel2) return;
+    var old1 = sel1.value; var old2 = sel2.value;
+    sel1.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+    sel2.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+    if(old1 && opts.indexOf(old1)!==-1) sel1.value = old1;
+    if(old2 && opts.indexOf(old2)!==-1) sel2.value = old2;
+  } catch(e){ console.error('[Nebula] populateCategorySelects:', e); }
+}
+} catch(e) { console.error('[Nebula] renderAll module failed:', e); }
+
+// ===================== DASHBOARD =====================
+try {
+var dashRingChart, weeklyChartInst, categoryChartInst;
+
+function renderDashboard(){
+  try {
+    var stats = computeStats();
+    var overallPct=stats.overallPct, totalChecks=stats.totalChecks, currentStreak=stats.currentStreak;
+    var bestStreak=stats.bestStreak, todayDone=stats.todayDone, todayTotal=stats.todayTotal, todayPct=stats.todayPct;
+
+    // Ring chart
+    try {
+      if(dashRingChart) { try { dashRingChart.destroy(); } catch(e){} }
+      dashRingChart = safeChart('dashRing', {
+        type:'doughnut',
+        data:{ labels:[t('lblCompleted'), t('lblIncomplete')], datasets:[{ data:[overallPct, Math.max(0,100-overallPct)], backgroundColor:['#a855f7','rgba(255,255,255,0.04)'], borderWidth:0, hoverOffset:0 }] },
+        options:{ cutout:'78%', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{ animateScale:true, animateRotate:true } }
+      });
+    } catch(e){ console.warn('[Nebula] dashRing chart failed:', e); }
+
+    // Stat values
+    try {
+      var dp = document.getElementById('dashPct'); if(dp) dp.textContent = Math.round(overallPct)+'%';
+      var ds = document.getElementById('dashStreak'); if(ds) ds.textContent = currentStreak;
+      var dbs = document.getElementById('dashBestStreak'); if(dbs) dbs.textContent = bestStreak;
+      var dt = document.getElementById('dashTotal'); if(dt) dt.textContent = totalChecks;
+      var dday = document.getElementById('dashToday'); if(dday) dday.textContent = todayDone+'/'+todayTotal;
+      var ddpct = document.getElementById('dashTodayPct'); if(ddpct) ddpct.textContent = Math.round(todayPct);
+    } catch(e){ console.warn('[Nebula] Dashboard stat DOM update failed:', e); }
+
+    // Weekly bar chart
+    try {
+      var weeklyData = getWeeklyData();
+      if(weeklyChartInst) { try { weeklyChartInst.destroy(); } catch(e){} }
+      weeklyChartInst = safeChart('weeklyChart', {
+        type:'bar',
+        data:{ labels: weeklyData.labels, datasets:[{ label: t('chartCompletionPct'), data: weeklyData.data, backgroundColor: weeklyData.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:8, barThickness:22 }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+      });
+    } catch(e){ console.warn('[Nebula] weeklyChart failed:', e); }
+
+    // Category doughnut chart
+    try {
+      var catData = getCategoryBreakdown();
+      if(categoryChartInst) { try { categoryChartInst.destroy(); } catch(e){} }
+      categoryChartInst = safeChart('categoryChart', {
+        type:'doughnut',
+        data:{ labels: catData.labels.map(translateCategory), datasets:[{ data: catData.data, backgroundColor: catData.colors, borderWidth:0, hoverOffset:8 }] },
+        options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{ position: currentLang==='ar'?'left':'right', labels:{color:'#94a3b8',font:{size:11},padding:16} }, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+      });
+    } catch(e){ console.warn('[Nebula] categoryChart failed:', e); }
+
+  } catch(e){ console.error('[Nebula] renderDashboard error:', e); }
+}
+
+function computeStats(){
+  try {
+    var keys = Object.keys(state.completions);
+    var totalChecks=0, totalSlots=0, currentStreak=0, bestStreak=0, tempStreak=0;
+    var todayDone=0, todayTotal=state.habits.length;
+    var tKey = todayKey();
+    if(state.completions[tKey]){
+      for(var i=0;i<state.habits.length;i++){ if(state.completions[tKey][state.habits[i].id]) todayDone++; }
+    }
+    var sorted = keys.slice().sort();
+    var prevDate = null;
+    for(var ki=0; ki<sorted.length; ki++){
+      var k = sorted[ki];
+      var dayDone = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
+      totalChecks += dayDone; totalSlots += state.habits.length;
+      var d = new Date(k);
+      if(prevDate){
+        var diff = (d - prevDate)/(1000*60*60*24);
+        if(diff===1 && dayDone===state.habits.length) tempStreak++;
+        else if(dayDone===state.habits.length) tempStreak=1;
+        else tempStreak=0;
+      } else { if(dayDone===state.habits.length) tempStreak=1; }
+      bestStreak = Math.max(bestStreak, tempStreak); prevDate = d;
+    }
+    var check = new Date(); currentStreak=0;
+    while(true){
+      var ck = fmtDate(check);
+      var done = state.habits.filter(function(h){ return state.completions[ck]&&state.completions[ck][h.id]; }).length;
+      if(done===state.habits.length && state.habits.length>0){ currentStreak++; check.setDate(check.getDate()-1); } else break;
+    }
+    var overallPct = totalSlots ? (totalChecks/totalSlots)*100 : 0;
+    var todayPct = todayTotal ? (todayDone/todayTotal)*100 : 0;
+    return { overallPct:overallPct, totalChecks:totalChecks, currentStreak:currentStreak, bestStreak:bestStreak, todayDone:todayDone, todayTotal:todayTotal, todayPct:todayPct };
+  } catch(e){ console.error('[Nebula] computeStats error:', e); return { overallPct:0, totalChecks:0, currentStreak:0, bestStreak:0, todayDone:0, todayTotal:0, todayPct:0 }; }
+}
+
+function getWeeklyData(){
+  try {
+    var labels=[], data=[];
+    var d = new Date(); d.setDate(d.getDate()-6);
+    for(var i=0;i<7;i++){
+      var k=fmtDate(d);
+      try { labels.push(d.toLocaleDateString(getLocale(),{weekday:'short'})); }
+      catch(e){ labels.push(d.toLocaleDateString('en-US',{weekday:'short'})); }
+      var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
+      data.push(state.habits.length ? Math.round((done/state.habits.length)*100) : 0);
+      d.setDate(d.getDate()+1);
+    }
+    return { labels:labels, data:data };
+  } catch(e){ return { labels:[], data:[] }; }
+}
+
+function getCategoryBreakdown(){
+  try {
+    var catMap={}; var total=0;
+    state.habits.forEach(function(h){ var cat=h.category; if(!catMap[cat]) catMap[cat]={done:0,total:0}; catMap[cat].total++; });
+    Object.keys(state.completions).forEach(function(k){ state.habits.forEach(function(h){ if(state.completions[k][h.id]){ catMap[h.category].done++; total++; } }); });
+    var labels=[], data=[], colors=[];
+    Object.keys(catMap).forEach(function(cat){ labels.push(cat); data.push(catMap[cat].done); colors.push(getCatStyle(cat).color); });
+    return { labels:labels, data:data, colors:colors };
+  } catch(e){ return { labels:[], data:[], colors:[] }; }
+}
+} catch(e) { console.error('[Nebula] Dashboard module failed:', e); }
+
+// ===================== TRACKER =====================
+try {
+function changeTrackerMonth(dir){
+  try { state.trackerMonth.setMonth(state.trackerMonth.getMonth()+dir); renderTracker(); } catch(e){ console.error('[Nebula] changeTrackerMonth:', e); }
+}
+function resetTrackerMonth(){
+  try { state.trackerMonth=new Date(now.getFullYear(),now.getMonth(),1); renderTracker(); } catch(e){}
+}
+
+function renderTracker(){
+  try {
+    var grid = document.getElementById('heatmapGrid');
+    if (!grid) return;
+    var y = state.trackerMonth.getFullYear(), m = state.trackerMonth.getMonth(), dim = daysInMonth(y,m);
+    var lbl = document.getElementById('trackerMonthLabel');
+    if (lbl) {
+      try { lbl.textContent = state.trackerMonth.toLocaleDateString(getLocale(),{month:'long',year:'numeric'}); }
+      catch(e){ try { lbl.textContent = state.trackerMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'}); } catch(e2){} }
+    }
+    var prevBtn = document.getElementById('btnPrevMonth');
+    var nextBtn = document.getElementById('btnNextMonth');
+    if(prevBtn && nextBtn) {
+      if(currentLang === 'ar') { prevBtn.className = 'fas fa-chevron-right'; nextBtn.className = 'fas fa-chevron-left'; }
+      else { prevBtn.className = 'fas fa-chevron-left'; nextBtn.className = 'fas fa-chevron-right'; }
+    }
+    grid.style.setProperty('grid-template-columns', '160px repeat('+dim+', 32px)', 'important');
+    grid.style.setProperty('width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
+    grid.style.setProperty('min-width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
+    grid.innerHTML = '';
+    grid.appendChild(cell(t('titleSetup').split(' ')[0]+' / '+t('btnToday'),'habit-label'));
+    for(var d=1; d<=dim; d++){
+      var isToday = (d===now.getDate() && m===now.getMonth() && y===now.getFullYear());
+      var c = cell(d, 'day-num');
+      if(isToday){ c.style.color='var(--neon-purple)'; c.style.fontWeight='800'; }
+      grid.appendChild(c);
+    }
+    state.habits.forEach(function(h){
+      try {
+        var lbl2 = document.createElement('div'); lbl2.className='heatmap-cell habit-label';
+        lbl2.innerHTML = '<span class="habit-emoji">'+h.emoji+'</span><span>'+escapeHtml(h.name)+'</span>';
+        grid.appendChild(lbl2);
+        for(var d2=1; d2<=dim; d2++){
+          var dk = getDayKey(y,m,d2);
+          var checked = !!(state.completions[dk] && state.completions[dk][h.id]);
+          var c2 = cell('', checked?'checked':'');
+          c2.dataset.date = dk; c2.dataset.hid = h.id;
+          (function(dk, hid, c2){
+            c2.onclick = function(){ toggleHabitDay(dk, hid, c2); };
+          })(dk, h.id, c2);
+          grid.appendChild(c2);
+        }
+      } catch(e2){ console.warn('[Nebula] renderTracker row error:', e2); }
+    });
+  } catch(e){ console.error('[Nebula] renderTracker error:', e); }
+}
+
+function cell(text, cls){ var d=document.createElement('div'); d.className='heatmap-cell'+(cls?' '+cls:''); d.textContent=text; return d; }
+
+function toggleHabitDay(dateKey, hid, el){
+  try {
+    if(!state.completions[dateKey]) state.completions[dateKey]={};
+    var was = !!state.completions[dateKey][hid];
+    if(was) delete state.completions[dateKey][hid]; else state.completions[dateKey][hid]=true;
+    markUnsaved();
+    if(!was){
+      el.classList.add('checked','heatmap-check-anim');
+      setTimeout(function(){ try { el.classList.remove('heatmap-check-anim'); } catch(e){} }, 500);
+      try {
+        var rect = el.getBoundingClientRect();
+        var habit = null;
+        for(var i=0;i<state.habits.length;i++){ if(state.habits[i].id===hid){ habit=state.habits[i]; break; } }
+        var col = getCatStyle(habit?habit.category:'').color || '#34d399';
+        safeConfetti({ particleCount:18, spread:50, origin:{ x:(rect.left+rect.width/2)/window.innerWidth, y:(rect.top+rect.height/2)/window.innerHeight }, colors:[col] });
+      } catch(e){}
+    } else { el.classList.remove('checked'); }
+    saveToStorage(); renderAll(); checkRewards();
+  } catch(e){ console.error('[Nebula] toggleHabitDay error:', e); }
+}
+} catch(e) { console.error('[Nebula] Tracker module failed:', e); }
+
+// ===================== SETUP =====================
+try {
+function renderSetup(){
+  try {
+    var list = document.getElementById('setupList');
+    if (!list) return;
+    list.innerHTML = '';
+    state.habits.forEach(function(h){
+      try {
+        var row = document.createElement('div'); row.className='setup-item';
+        var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+        var catStyle = getCatStyle(h.category);
+        row.innerHTML =
+          '<div class="emoji-btn" contenteditable="true" data-hid="'+h.id+'">'+h.emoji+'</div>'+
+          '<input value="'+escapeHtml(h.name)+'" data-hid="'+h.id+'" class="habit-name-input" placeholder="'+t('placeholderHabit')+'">'+
+          '<select data-hid="'+h.id+'" class="habit-cat-select">'+cats.map(function(c){ return '<option value="'+c+'"'+(c===h.category?' selected':'')+'>'+c+'</option>'; }).join('')+'</select>'+
+          '<div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:'+catStyle.color+';display:inline-block;box-shadow:0 0 8px '+catStyle.glow+';"></span>'+escapeHtml(h.category)+'</div>'+
+          '<button class="del-btn" data-hid="'+h.id+'"><i class="fas fa-trash-alt"></i></button>';
+        row.querySelector('.emoji-btn').addEventListener('blur', function(){ updateEmoji(this.getAttribute('data-hid'), this); });
+        row.querySelector('.habit-name-input').addEventListener('change', function(){ updateHabitName(this.getAttribute('data-hid'), this.value); });
+        row.querySelector('.habit-cat-select').addEventListener('change', function(){ updateHabitCat(this.getAttribute('data-hid'), this.value); });
+        row.querySelector('.del-btn').addEventListener('click', function(){ deleteHabit(this.getAttribute('data-hid')); });
+        list.appendChild(row);
+      } catch(e2){ console.warn('[Nebula] renderSetup row error:', e2); }
+    });
+    var hc = document.getElementById('habitCount');
+    if (hc) hc.textContent = t('habitCount', {n: state.habits.length});
+    var cg = document.getElementById('catGrid');
+    if (cg) {
+      cg.innerHTML = '';
+      [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')].forEach(function(cat){
+        try {
+          var habitsInCat = state.habits.filter(function(h){ return h.category===cat; });
+          var style = getCatStyle(cat);
+          var card = document.createElement('div'); card.className='card'; card.style.borderTop = '3px solid '+style.color;
+          var habitsHtml = habitsInCat.map(function(h){ return '<span style="background:var(--bg-deep);border:1px solid var(--border);padding:4px 10px;border-radius:8px;font-size:12px;">'+h.emoji+' '+escapeHtml(h.name)+'</span>'; }).join('');
+          if(!habitsInCat.length) habitsHtml = '<span style="font-size:12px;color:var(--text-muted);">'+t('noHabitsYet')+'</span>';
+          card.innerHTML =
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
+              '<div style="width:36px;height:36px;border-radius:10px;background:'+style.bg+';display:flex;align-items:center;justify-content:center;color:'+style.color+';box-shadow:0 0 12px '+style.glow+';"><i class="fas '+getCatIcon(cat)+'"></i></div>'+
+              '<div><div style="font-weight:700;font-size:14px;">'+cat+'</div><div style="font-size:12px;color:var(--text-muted);">'+habitsInCat.length+'</div></div>'+
+            '</div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+habitsHtml+'</div>';
+          cg.appendChild(card);
+        } catch(e2){}
+      });
+    }
+  } catch(e){ console.error('[Nebula] renderSetup error:', e); }
+}
+
+function addHabit(){
+  try {
+    var name = document.getElementById('newHabitName').value.trim();
+    var cat = document.getElementById('newHabitCat').value;
+    var emoji = document.getElementById('newHabitEmoji').value.trim()||'✨';
+    if(!name){ showToast(t('msgEnterHabit'),'info'); return; }
+    state.habits.push({ id:'h'+Date.now(), name:name, emoji:emoji, category:cat }); markUnsaved();
+    document.getElementById('newHabitName').value=''; saveToStorage(); renderAll(); showToast(t('msgAddedHabit'),'success');
+  } catch(e){ console.error('[Nebula] addHabit error:', e); }
+}
+
+function updateEmoji(hid, el){
+  try { var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.emoji=el.textContent.trim(); saveToStorage(); renderAll(); } } catch(e){}
+}
+function updateHabitName(hid, val){
+  try { var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.name=val; saveToStorage(); renderAll(); } } catch(e){}
+}
+function updateHabitCat(hid, val){
+  try { var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.category=val; saveToStorage(); renderAll(); } } catch(e){}
+}
+function deleteHabit(hid){
+  try {
+    state.habits=state.habits.filter(function(x){ return x.id!==hid; });
+    Object.keys(state.completions).forEach(function(k){ delete state.completions[k][hid]; });
+    saveToStorage(); renderAll(); showToast(t('msgRemovedHabit'),'info');
+  } catch(e){ console.error('[Nebula] deleteHabit error:', e); }
+}
+} catch(e) { console.error('[Nebula] Setup module failed:', e); }
+
+// ===================== REWARDS =====================
+try {
+function renderRewards(){
+  try {
+    var grid = document.getElementById('rewardsGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    state.rewards.forEach(function(r){
+      try {
+        var pct = getCategoryCompletion(r.category); var unlocked = pct >= r.threshold; var prev = r.unlocked;
+        r.unlocked = unlocked; if(unlocked && !prev) triggerRewardUnlock(r);
+        var card = document.createElement('div'); card.className = 'reward-card '+(unlocked?'unlocked':'locked');
+        var cinfo = getCatStyle(r.category);
+        card.innerHTML =
+          '<div class="reward-badge">'+(unlocked?t('unlocked'):t('locked'))+'</div>'+
+          '<div class="reward-title">'+(r.emoji||'🎁')+' '+escapeHtml(r.name)+'</div>'+
+          '<div class="reward-desc">'+escapeHtml(r.desc)+'</div>'+
+          '<div class="reward-meta"><span class="dot" style="background:'+cinfo.color+';box-shadow:0 0 6px '+cinfo.glow+';"></span> '+escapeHtml(r.category)+' · '+t('atThreshold')+' '+r.threshold+'%</div>'+
+          '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+Math.min(pct,100)+'%;background:'+cinfo.color+';box-shadow:0 0 10px '+cinfo.glow+';"></div></div>'+
+          '<div class="threshold-label">'+Math.round(pct)+'% / '+r.threshold+'%</div>'+
+          '<div class="celebration-overlay"><div class="sparkle">✨</div></div>';
+        grid.appendChild(card);
+      } catch(e2){ console.warn('[Nebula] renderRewards card error:', e2); }
+    });
+  } catch(e){ console.error('[Nebula] renderRewards error:', e); }
+}
+
+function getCategoryCompletion(cat){
+  try {
+    var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return 0;
+    var done=0, total=0;
+    Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
+    return total ? (done/total)*100 : 0;
+  } catch(e){ return 0; }
+}
+
+function triggerRewardUnlock(r){
+  try {
+    safeConfetti({ particleCount:120, spread:80, origin:{y:0.6}, colors:['#fbbf24','#f472b6','#a855f7','#38bdf8'] });
+    var mi = document.getElementById('modalIcon'); if(mi) mi.textContent = '🎉';
+    var mt = document.getElementById('modalTitle'); if(mt) mt.textContent = t('modalRewardTitle')+' '+r.name;
+    var mb = document.getElementById('modalBody'); if(mb) mb.textContent = t('atThreshold')+' '+r.threshold+'% '+t('subByCompletion').toLowerCase()+' '+r.category+'! '+r.desc;
+    var m = document.getElementById('modal'); if(m) m.classList.add('show');
+    saveToStorage();
+  } catch(e){ console.warn('[Nebula] triggerRewardUnlock error:', e); }
+}
+
+function addReward(){
+  try {
+    var name = document.getElementById('rewardName').value.trim();
+    var desc = document.getElementById('rewardDesc').value.trim();
+    var cat = document.getElementById('rewardCat').value;
+    var threshold = parseInt(document.getElementById('rewardThreshold').value);
+    if(!name){ showToast(t('msgEnterReward'),'info'); return; }
+    state.rewards.push({ id:'r'+Date.now(), name:name, desc:desc, category:cat, threshold:threshold, unlocked:false });
+    document.getElementById('rewardName').value=''; document.getElementById('rewardDesc').value='';
+    saveToStorage(); renderAll(); showToast(t('msgAddedReward'),'success');
+  } catch(e){ console.error('[Nebula] addReward error:', e); }
+}
+function checkRewards(){ try { renderRewards(); } catch(e){} }
+function closeModal(){ try { document.getElementById('modal').classList.remove('show'); } catch(e){} }
+} catch(e) { console.error('[Nebula] Rewards module failed:', e); }
+
+// ===================== RESET =====================
+try {
+function showResetConfirm(){
+  try {
+    var ct = document.getElementById('confirmTitle'); if(ct) ct.textContent = t('confirmTitle');
+    var cb = document.getElementById('confirmBody'); if(cb) cb.textContent = t('confirmBody');
+    var cok = document.getElementById('confirmOkBtn'); if(cok) cok.textContent = t('confirmOk');
+    var ccan = document.getElementById('confirmCancelBtn'); if(ccan) ccan.textContent = t('confirmCancel');
+    var co = document.getElementById('confirmOverlay'); if(co) co.classList.add('show');
+  } catch(e){}
+}
+function hideResetConfirm(){
+  try { document.getElementById('confirmOverlay').classList.remove('show'); } catch(e){}
+}
+function doReset(){
+  try {
+    ['nebula_habit_tracker_multi','nebula_lang','nebula_last_backup','nebula_notes','nebula_quote_idx'].forEach(function(k){
+      try { localStorage.removeItem(k); } catch(e){}
+    });
+    hideResetConfirm();
+    window.location.reload();
+  } catch(e){ console.error('[Nebula] doReset error:', e); }
+}
+} catch(e) { console.error('[Nebula] Reset module failed:', e); }
+
+// ===================== ANALYTICS =====================
+try {
+var monthlyTrendInst, streakInst, dailyRateInst, radarInst;
+
+function renderAnalytics(){
+  try {
+    // Monthly trend line chart
+    try {
+      var mt = getMonthlyTrend();
+      if(monthlyTrendInst) { try { monthlyTrendInst.destroy(); } catch(e){} }
+      monthlyTrendInst = safeChart('monthlyTrendChart', {
+        type:'line',
+        data:{ labels:mt.labels, datasets:[{ label: t('chartCompletionPct'), data:mt.data, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.1)', fill:true, tension:0.4, pointBackgroundColor:'#a855f7', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+      });
+    } catch(e){ console.warn('[Nebula] monthlyTrendChart:', e); }
+
+    // Streak bar chart
+    try {
+      var sc = getCategoryStreaks();
+      if(streakInst) { try { streakInst.destroy(); } catch(e){} }
+      streakInst = safeChart('streakChart', {
+        type:'bar',
+        data:{ labels:sc.labels.map(translateCategory), datasets:[{ label: t('chartStreakDays'), data:sc.data, backgroundColor:sc.colors, borderRadius:8, barThickness:28 }] },
+        options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ beginAtZero:true, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, y:{ grid:{display:false}, ticks:{color:'#94a3b8',font:{size:12}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+      });
+    } catch(e){ console.warn('[Nebula] streakChart:', e); }
+
+    // Daily rate bar chart
+    try {
+      var dr = getDailyRateThisMonth();
+      if(dailyRateInst) { try { dailyRateInst.destroy(); } catch(e){} }
+      dailyRateInst = safeChart('dailyRateChart', {
+        type:'bar',
+        data:{ labels:dr.labels, datasets:[{ label:'%', data:dr.data, backgroundColor:dr.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:4, barThickness:6 }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:10}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:9},maxRotation:0} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+      });
+    } catch(e){ console.warn('[Nebula] dailyRateChart:', e); }
+
+    // Radar chart
+    try {
+      var rd = getRadarData();
+      if(radarInst) { try { radarInst.destroy(); } catch(e){} }
+      radarInst = safeChart('radarChart', {
+        type:'radar',
+        data:{ labels:rd.labels.map(translateCategory), datasets:[{ label: t('chartScore'), data:rd.data, borderColor:'#f472b6', backgroundColor:'rgba(244,114,182,0.15)', pointBackgroundColor:'#f472b6', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
+        options:{ responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.06)'}, pointLabels:{color:'#94a3b8',font:{size:11}}, ticks:{display:false} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+      });
+    } catch(e){ console.warn('[Nebula] radarChart:', e); }
+
+  } catch(e){ console.error('[Nebula] renderAnalytics error:', e); }
+}
+
+function getMonthlyTrend(){
+  try {
+    var labels=[], data=[]; var d = new Date(); d.setMonth(d.getMonth()-5);
+    for(var i=0;i<6;i++){
+      var y=d.getFullYear(), m=d.getMonth();
+      try { labels.push(d.toLocaleDateString(getLocale(),{month:'short'})); }
+      catch(e){ labels.push(d.toLocaleDateString('en-US',{month:'short'})); }
+      var dim=daysInMonth(y,m); var done=0, total=0;
+      for(var day=1; day<=dim; day++){
+        var k=getDayKey(y,m,day);
+        state.habits.forEach(function(h){ total++; if(state.completions[k]&&state.completions[k][h.id]) done++; });
+      }
+      data.push(total?Math.round((done/total)*100):0); d.setMonth(d.getMonth()+1);
+    }
+    return { labels:labels, data:data };
+  } catch(e){ return { labels:[], data:[] }; }
+}
+
+function getCategoryStreaks(){
+  try {
+    var labels=[], data=[], colors=[];
+    var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+    cats.forEach(function(cat){
+      try {
+        var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
+        labels.push(cat); colors.push(getCatStyle(cat).color); var streak=0; var check = new Date();
+        while(true){
+          var k=fmtDate(check);
+          var allDone = habits.every(function(h){ return state.completions[k]&&state.completions[k][h.id]; });
+          if(allDone){ streak++; check.setDate(check.getDate()-1); } else break;
+        }
+        data.push(streak);
+      } catch(e2){}
+    });
+    return { labels:labels, data:data, colors:colors };
+  } catch(e){ return { labels:[], data:[], colors:[] }; }
+}
+
+function getDailyRateThisMonth(){
+  try {
+    var labels=[], data=[];
+    var y=now.getFullYear(), m=now.getMonth(); var dim=daysInMonth(y,m);
+    for(var d=1; d<=dim; d++){
+      labels.push(String(d));
+      var k=getDayKey(y,m,d);
+      var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
+      data.push(state.habits.length?Math.round((done/state.habits.length)*100):0);
+    }
+    return { labels:labels, data:data };
+  } catch(e){ return { labels:[], data:[] }; }
+}
+
+function getRadarData(){
+  try {
+    var labels=[], data=[];
+    var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+    cats.forEach(function(cat){
+      try {
+        var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
+        labels.push(cat); var done=0, total=0;
+        Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
+        data.push(total?Math.round((done/total)*100):0);
+      } catch(e2){}
+    });
+    return { labels:labels, data:data };
+  } catch(e){ return { labels:[], data:[] }; }
+}
+} catch(e) { console.error('[Nebula] Analytics module failed:', e); }
+
+// ===================== DATA I/O =====================
+try {
 function downloadData(){
-  var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  var url = URL.createObjectURL(blob); var a = document.createElement('a');
-  a.href=url; a.download='nebula-tracker-'+currentLang+'.json'; a.click(); URL.revokeObjectURL(url);
-  saveToStorage();
-  showToast(t('msgSaved'),'success');
+  try {
+    var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    var url = URL.createObjectURL(blob); var a = document.createElement('a');
+    a.href=url; a.download='nebula-tracker-'+currentLang+'.json'; a.click(); URL.revokeObjectURL(url);
+    saveToStorage(); showToast(t('msgSaved'),'success');
+  } catch(e){ console.error('[Nebula] downloadData error:', e); }
 }
 
 function manualBackup(){
-  var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-  var url = URL.createObjectURL(blob); var a = document.createElement('a');
-  var dateStr = new Date().toISOString().split('T')[0];
-  a.href=url; a.download='glowhabit-backup-'+dateStr+'.json'; a.click(); URL.revokeObjectURL(url);
-  try { localStorage.setItem('nebula_last_backup', dateStr); } catch(e){}
-  showToast(t('msgAutoBackup'),'success');
+  try {
+    var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    var url = URL.createObjectURL(blob); var a = document.createElement('a');
+    var dateStr = new Date().toISOString().split('T')[0];
+    a.href=url; a.download='glowhabit-backup-'+dateStr+'.json'; a.click(); URL.revokeObjectURL(url);
+    try { localStorage.setItem('nebula_last_backup', dateStr); } catch(e){}
+    showToast(t('msgAutoBackup'),'success');
+  } catch(e){ console.error('[Nebula] manualBackup error:', e); }
 }
 
 function uploadData(input){
-  var file = input.files[0]; if(!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e){
-    try {
-      var parsed = JSON.parse(e.target.result);
-      if(parsed.habits) state.habits = parsed.habits;
-      if(parsed.rewards) state.rewards = parsed.rewards;
-      if(parsed.completions) state.completions = parsed.completions;
-      saveToStorage(); renderAll(); showToast(t('msgLoaded'),'success');
-    } catch(err){ showToast(t('msgInvalidFile'),'info'); }
-  };
-  reader.readAsText(file); input.value='';
+  try {
+    var file = input.files[0]; if(!file) return;
+    var reader = new FileReader();
+    reader.onload = function(e){
+      try {
+        var parsed = JSON.parse(e.target.result);
+        if(parsed.habits) state.habits = parsed.habits;
+        if(parsed.rewards) state.rewards = parsed.rewards;
+        if(parsed.completions) state.completions = parsed.completions;
+        saveToStorage(); renderAll(); showToast(t('msgLoaded'),'success');
+      } catch(err){ showToast(t('msgInvalidFile'),'info'); }
+    };
+    reader.readAsText(file); input.value='';
+  } catch(e){ console.error('[Nebula] uploadData error:', e); }
 }
 
 function showToast(msg, type){
-  var t_el = document.getElementById('toast');
-  document.getElementById('toastMsg').textContent = msg;
-  t_el.className = 'toast '+type+' show';
-  setTimeout(function(){ t_el.classList.remove('show'); }, 2600);
+  try {
+    var t_el = document.getElementById('toast');
+    var tm = document.getElementById('toastMsg');
+    if (!t_el || !tm) return;
+    tm.textContent = msg;
+    t_el.className = 'toast '+type+' show';
+    setTimeout(function(){ try { t_el.classList.remove('show'); } catch(e){} }, 2600);
+  } catch(e){}
 }
+} catch(e) { console.error('[Nebula] Data I/O module failed:', e); }
 
+// ===================== BACKUP REMINDER =====================
+try {
 function checkBackupReminder(){
-  var lastBackup;
-  try { lastBackup = localStorage.getItem('nebula_last_backup'); } catch(e){}
-  if(!lastBackup){ setTimeout(showBackupBanner, 3000); return; }
-  var last = new Date(lastBackup);
-  var diff = (new Date() - last) / (1000*60*60*24);
-  if(diff >= 7){ setTimeout(showBackupBanner, 3000); }
+  try {
+    var lastBackup;
+    try { lastBackup = localStorage.getItem('nebula_last_backup'); } catch(e){}
+    if(!lastBackup){ setTimeout(showBackupBanner, 3000); return; }
+    var last = new Date(lastBackup);
+    var diff = (new Date() - last) / (1000*60*60*24);
+    if(diff >= 7){ setTimeout(showBackupBanner, 3000); }
+  } catch(e){}
 }
 
 function showBackupBanner(){
-  if(document.getElementById('backupBanner')) return;
-  var banner = document.createElement('div');
-  banner.id = 'backupBanner';
-  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(168,85,247,0.15));border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;font-weight:600;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);';
-  banner.innerHTML =
-    '<i class="fas fa-shield-alt" style="color:var(--neon-amber)"></i>'+
-    '<span style="color:var(--text-primary)">'+t('msgBackupReminder')+'</span>'+
-    '<button id="bannerBackupBtn" style="background:var(--neon-amber);color:#000;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;">'+t('btnBackup')+'</button>'+
-    '<button id="bannerCloseBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>';
-  document.body.prepend(banner);
-  document.getElementById('bannerBackupBtn').onclick = function(){ manualBackup(); closeBanner(); };
-  document.getElementById('bannerCloseBtn').onclick = closeBanner;
-}
-function closeBanner(){
-  var b = document.getElementById('backupBanner');
-  if(b) b.remove();
+  try {
+    if(document.getElementById('backupBanner')) return;
+    var banner = document.createElement('div');
+    banner.id = 'backupBanner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(168,85,247,0.15));border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;font-weight:600;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);';
+    banner.innerHTML =
+      '<i class="fas fa-shield-alt" style="color:var(--neon-amber)"></i>'+
+      '<span style="color:var(--text-primary)">'+t('msgBackupReminder')+'</span>'+
+      '<button id="bannerBackupBtn" style="background:var(--neon-amber);color:#000;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;">'+t('btnBackup')+'</button>'+
+      '<button id="bannerCloseBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>';
+    document.body.prepend(banner);
+    var bbb = document.getElementById('bannerBackupBtn');
+    var bcb = document.getElementById('bannerCloseBtn');
+    if(bbb) bbb.onclick = function(){ manualBackup(); closeBanner(); };
+    if(bcb) bcb.onclick = closeBanner;
+  } catch(e){ console.warn('[Nebula] showBackupBanner error:', e); }
 }
 
+function closeBanner(){
+  try { var b = document.getElementById('backupBanner'); if(b) b.remove(); } catch(e){}
+}
+} catch(e) { console.error('[Nebula] Backup reminder module failed:', e); }
+
 // ===================== QUOTES ENGINE =====================
+try {
 var QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
   { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -1524,34 +1804,40 @@ var _quoteIdx = -1;
 var _quoteInterval = null;
 
 function cycleQuote(userTriggered) {
-  var next;
-  do { next = Math.floor(Math.random() * QUOTES.length); } while (next === _quoteIdx && QUOTES.length > 1);
-  _quoteIdx = next;
-  var q = QUOTES[next];
-  var wrap = document.getElementById('quoteWrap');
-  var textEl = document.getElementById('quoteText');
-  var authEl = document.getElementById('quoteAuthor');
-  if (!wrap || !textEl || !authEl) return;
-  wrap.classList.remove('fading');
-  void wrap.offsetWidth; // force reflow to restart animation
-  wrap.classList.add('fading');
-  textEl.textContent = q.text;
-  authEl.textContent = '\u2014 ' + q.author;
-  try { localStorage.setItem('nebula_quote_idx', _quoteIdx); } catch(e){}
+  try {
+    var next;
+    do { next = Math.floor(Math.random() * QUOTES.length); } while (next === _quoteIdx && QUOTES.length > 1);
+    _quoteIdx = next;
+    var q = QUOTES[next];
+    var wrap = document.getElementById('quoteWrap');
+    var textEl = document.getElementById('quoteText');
+    var authEl = document.getElementById('quoteAuthor');
+    if (!wrap || !textEl || !authEl) return;
+    wrap.classList.remove('fading');
+    void wrap.offsetWidth;
+    wrap.classList.add('fading');
+    textEl.textContent = q.text;
+    authEl.textContent = '\u2014 ' + q.author;
+    try { localStorage.setItem('nebula_quote_idx', _quoteIdx); } catch(e){}
+  } catch(e){ console.warn('[Nebula] cycleQuote error:', e); }
 }
 
 function initQuotes() {
   try {
-    var stored = localStorage.getItem('nebula_quote_idx');
-    if (stored !== null) _quoteIdx = parseInt(stored) || -1;
-  } catch(e){}
-  cycleQuote(false);
-  _quoteInterval = setInterval(function() { cycleQuote(false); }, 60000);
+    try {
+      var stored = localStorage.getItem('nebula_quote_idx');
+      if (stored !== null) _quoteIdx = parseInt(stored) || -1;
+    } catch(e){}
+    cycleQuote(false);
+    _quoteInterval = setInterval(function() { try { cycleQuote(false); } catch(e){} }, 60000);
+  } catch(e){ console.error('[Nebula] initQuotes error:', e); }
 }
+} catch(e) { console.error('[Nebula] Quotes module failed:', e); }
 
 // ===================== NOTES ENGINE =====================
+try {
 var notesData = {
-  notes: [],          // [{id, title, content, updatedAt}]
+  notes: [],
   activeId: null,
 };
 var _notesTimer = null;
@@ -1563,195 +1849,267 @@ function loadNotes() {
       var parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) notesData.notes = parsed;
     }
-  } catch(e){}
+  } catch(e){ console.warn('[Nebula] loadNotes error (using empty):', e); }
 }
 
 function persistNotes() {
   try { localStorage.setItem('nebula_notes', JSON.stringify(notesData.notes)); } catch(e){}
-  setNoteStatus('saved');
+  try { setNoteStatus('saved'); } catch(e){}
 }
 
 function setNoteStatus(st) {
-  var el = document.getElementById('notesStatus');
-  var lbl = document.getElementById('notesStatusLabel');
-  if (!el || !lbl) return;
-  el.className = 'notes-autosave-status ' + st;
-  var cap = st.charAt(0).toUpperCase() + st.slice(1);
-  lbl.textContent = t('notes' + cap);
+  try {
+    var el = document.getElementById('notesStatus');
+    var lbl = document.getElementById('notesStatusLabel');
+    if (!el || !lbl) return;
+    el.className = 'notes-autosave-status ' + st;
+    var cap = st.charAt(0).toUpperCase() + st.slice(1);
+    lbl.textContent = t('notes' + cap);
+  } catch(e){}
 }
 
 function scheduleNotesSave() {
-  setNoteStatus('saving');
-  clearTimeout(_notesTimer);
-  _notesTimer = setTimeout(persistNotes, 600);
+  try {
+    setNoteStatus('saving');
+    clearTimeout(_notesTimer);
+    _notesTimer = setTimeout(persistNotes, 600);
+  } catch(e){}
 }
 
 function renderNotesList() {
-  var listEl = document.getElementById('notesList');
-  if (!listEl) return;
-  if (notesData.notes.length === 0) {
-    listEl.innerHTML = '<div class="notes-empty-list"><i class="fas fa-feather-alt"></i><span>'+t('notesEmptyList')+'</span></div>';
-    return;
-  }
-  // sort newest first
-  var sorted = notesData.notes.slice().sort(function(a,b){ return (b.updatedAt||0) - (a.updatedAt||0); });
-  listEl.innerHTML = '';
-  sorted.forEach(function(note) {
-    var item = document.createElement('div');
-    item.className = 'note-list-item' + (note.id === notesData.activeId ? ' active' : '');
-    var title = note.title || t('notesUntitled');
-    var snippet = (note.content || '').replace(/\n/g,' ').substring(0, 58);
-    var dateStr = '';
-    if (note.updatedAt) {
-      try { dateStr = new Date(note.updatedAt).toLocaleDateString(getLocale(), {month:'short', day:'numeric'}); }
-      catch(e) { dateStr = new Date(note.updatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}); }
+  try {
+    var listEl = document.getElementById('notesList');
+    if (!listEl) return;
+    if (notesData.notes.length === 0) {
+      listEl.innerHTML = '<div class="notes-empty-list"><i class="fas fa-feather-alt"></i><span>'+t('notesEmptyList')+'</span></div>';
+      return;
     }
-    item.innerHTML =
-      '<div class="note-item-title">'+escapeHtml(title)+'</div>'+
-      '<div class="note-item-snippet">'+escapeHtml(snippet || '…')+'</div>'+
-      '<div class="note-item-date">'+escapeHtml(dateStr)+'</div>';
-    (function(nid){ item.onclick = function(){ openNote(nid); }; })(note.id);
-    listEl.appendChild(item);
-  });
+    var sorted = notesData.notes.slice().sort(function(a,b){ return (b.updatedAt||0) - (a.updatedAt||0); });
+    listEl.innerHTML = '';
+    sorted.forEach(function(note) {
+      try {
+        var item = document.createElement('div');
+        item.className = 'note-list-item' + (note.id === notesData.activeId ? ' active' : '');
+        var title = note.title || t('notesUntitled');
+        var snippet = (note.content || '').replace(/\n/g,' ').substring(0, 58);
+        var dateStr = '';
+        if (note.updatedAt) {
+          try { dateStr = new Date(note.updatedAt).toLocaleDateString(getLocale(), {month:'short', day:'numeric'}); }
+          catch(e) { dateStr = new Date(note.updatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}); }
+        }
+        item.innerHTML =
+          '<div class="note-item-title">'+escapeHtml(title)+'</div>'+
+          '<div class="note-item-snippet">'+escapeHtml(snippet || '…')+'</div>'+
+          '<div class="note-item-date">'+escapeHtml(dateStr)+'</div>';
+        (function(nid){ item.onclick = function(){ openNote(nid); }; })(note.id);
+        listEl.appendChild(item);
+      } catch(e2){}
+    });
+  } catch(e){ console.error('[Nebula] renderNotesList error:', e); }
 }
 
 function openNote(noteId) {
-  var note = null;
-  for (var i=0; i<notesData.notes.length; i++) {
-    if (notesData.notes[i].id === noteId) { note = notesData.notes[i]; break; }
-  }
-  if (!note) return;
-  notesData.activeId = noteId;
-  renderNotesList();
-  showNoteEditor(note);
+  try {
+    var note = null;
+    for (var i=0; i<notesData.notes.length; i++) {
+      if (notesData.notes[i].id === noteId) { note = notesData.notes[i]; break; }
+    }
+    if (!note) return;
+    notesData.activeId = noteId;
+    renderNotesList();
+    showNoteEditor(note);
+  } catch(e){ console.error('[Nebula] openNote error:', e); }
 }
 
 function showNoteEditor(note) {
-  var emptyState  = document.getElementById('notesEmptyState');
-  var editArea    = document.getElementById('notesEditArea');
-  var delBtn      = document.getElementById('notesDelBtn');
-  var titleInput  = document.getElementById('notesTitleInput');
-  var bodyInput   = document.getElementById('notesBodyInput');
-  if (emptyState) emptyState.style.display = 'none';
-  if (editArea)   { editArea.style.display = 'flex'; editArea.style.flexDirection = 'column'; }
-  if (delBtn)     delBtn.style.display = 'flex';
-  if (titleInput) titleInput.value = note.title || '';
-  if (bodyInput)  bodyInput.value  = note.content || '';
-  setNoteStatus('ready');
-  if (titleInput) {
-    titleInput.oninput = function() { patchActiveNote(this.value, null); };
-  }
-  if (bodyInput) {
-    bodyInput.oninput = function() { patchActiveNote(null, this.value); };
-  }
+  try {
+    var emptyState  = document.getElementById('notesEmptyState');
+    var editArea    = document.getElementById('notesEditArea');
+    var delBtn      = document.getElementById('notesDelBtn');
+    var titleInput  = document.getElementById('notesTitleInput');
+    var bodyInput   = document.getElementById('notesBodyInput');
+    if (emptyState) emptyState.style.display = 'none';
+    if (editArea)   { editArea.style.display = 'flex'; editArea.style.flexDirection = 'column'; }
+    if (delBtn)     delBtn.style.display = 'flex';
+    if (titleInput) titleInput.value = note.title || '';
+    if (bodyInput)  bodyInput.value  = note.content || '';
+    setNoteStatus('ready');
+    if (titleInput) { titleInput.oninput = function() { try { patchActiveNote(this.value, null); } catch(e){} }; }
+    if (bodyInput)  { bodyInput.oninput  = function() { try { patchActiveNote(null, this.value); } catch(e){} }; }
+  } catch(e){ console.error('[Nebula] showNoteEditor error:', e); }
 }
 
 function hideNoteEditor() {
-  var emptyState = document.getElementById('notesEmptyState');
-  var editArea   = document.getElementById('notesEditArea');
-  var delBtn     = document.getElementById('notesDelBtn');
-  if (emptyState) emptyState.style.display = 'flex';
-  if (editArea)   editArea.style.display   = 'none';
-  if (delBtn)     delBtn.style.display     = 'none';
+  try {
+    var emptyState = document.getElementById('notesEmptyState');
+    var editArea   = document.getElementById('notesEditArea');
+    var delBtn     = document.getElementById('notesDelBtn');
+    if (emptyState) emptyState.style.display = 'flex';
+    if (editArea)   editArea.style.display   = 'none';
+    if (delBtn)     delBtn.style.display     = 'none';
+  } catch(e){}
 }
 
 function patchActiveNote(newTitle, newContent) {
-  if (!notesData.activeId) return;
-  for (var i=0; i<notesData.notes.length; i++) {
-    if (notesData.notes[i].id === notesData.activeId) {
-      if (newTitle   !== null) notesData.notes[i].title   = newTitle;
-      if (newContent !== null) notesData.notes[i].content = newContent;
-      notesData.notes[i].updatedAt = Date.now();
-      break;
+  try {
+    if (!notesData.activeId) return;
+    for (var i=0; i<notesData.notes.length; i++) {
+      if (notesData.notes[i].id === notesData.activeId) {
+        if (newTitle   !== null) notesData.notes[i].title   = newTitle;
+        if (newContent !== null) notesData.notes[i].content = newContent;
+        notesData.notes[i].updatedAt = Date.now();
+        break;
+      }
     }
-  }
-  renderNotesList();
-  scheduleNotesSave();
+    renderNotesList();
+    scheduleNotesSave();
+  } catch(e){ console.error('[Nebula] patchActiveNote error:', e); }
 }
 
 function createNewNote() {
-  var note = { id:'n'+Date.now(), title:'', content:'', updatedAt:Date.now() };
-  notesData.notes.unshift(note);
-  notesData.activeId = note.id;
-  renderNotesList();
-  showNoteEditor(note);
-  persistNotes();
-  setTimeout(function(){
-    var ti = document.getElementById('notesTitleInput');
-    if (ti) ti.focus();
-  }, 60);
+  try {
+    var note = { id:'n'+Date.now(), title:'', content:'', updatedAt:Date.now() };
+    notesData.notes.unshift(note);
+    notesData.activeId = note.id;
+    renderNotesList();
+    showNoteEditor(note);
+    persistNotes();
+    setTimeout(function(){
+      try { var ti = document.getElementById('notesTitleInput'); if (ti) ti.focus(); } catch(e){}
+    }, 60);
+  } catch(e){ console.error('[Nebula] createNewNote error:', e); }
 }
 
 function deleteCurrentNote() {
-  if (!notesData.activeId) return;
-  notesData.notes = notesData.notes.filter(function(n){ return n.id !== notesData.activeId; });
-  notesData.activeId = null;
-  persistNotes();
-  renderNotesList();
-  hideNoteEditor();
+  try {
+    if (!notesData.activeId) return;
+    notesData.notes = notesData.notes.filter(function(n){ return n.id !== notesData.activeId; });
+    notesData.activeId = null;
+    persistNotes();
+    renderNotesList();
+    hideNoteEditor();
+  } catch(e){ console.error('[Nebula] deleteCurrentNote error:', e); }
 }
 
 function initNotes() {
-  loadNotes();
-  renderNotesList();
+  try { loadNotes(); } catch(e){}
+  try { renderNotesList(); } catch(e){}
 }
+} catch(e) { console.error('[Nebula] Notes module failed:', e); }
 
-// Close confirm overlay on outside click
-document.addEventListener('click', function(e){
-  var overlay = document.getElementById('confirmOverlay');
-  if(e.target === overlay) hideResetConfirm();
-});
-
-// Keyboard: Escape closes modals
-document.addEventListener('keydown', function(e){
-  if(e.key==='Escape' || e.keyCode===27){
-    closeModal();
-    hideResetConfirm();
-  }
-});
-
-// DOMContentLoaded — cross-browser safe
-if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', init);
-} else {
-  init();
-}
-
-// Service Worker registration for PWA offline + standalone mode
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function(reg) {
-      console.log('[SW] Registered, scope:', reg.scope);
-    }).catch(function(err) {
-      console.warn('[SW] Registration failed:', err);
-    });
+// ===================== GLOBAL EVENT LISTENERS =====================
+// These are attached independently so that even if any module above crashed,
+// modal close / keyboard shortcuts still work.
+try {
+  document.addEventListener('click', function(e){
+    try {
+      var overlay = document.getElementById('confirmOverlay');
+      if(e.target === overlay) hideResetConfirm();
+    } catch(e2){}
   });
+} catch(e){}
+
+try {
+  document.addEventListener('keydown', function(e){
+    try {
+      if(e.key==='Escape' || e.keyCode===27){ closeModal(); hideResetConfirm(); }
+    } catch(e2){}
+  });
+} catch(e){}
+
+// ===================== INIT =====================
+function init(){
+  // Each init step is independently guarded. One failing step
+  // does NOT prevent subsequent steps from running.
+  try {
+    var savedLang;
+    try { savedLang = localStorage.getItem('nebula_lang'); } catch(e){}
+    if(savedLang && i18n[savedLang]) {
+      currentLang = savedLang;
+      var ls = document.getElementById('langSelect');
+      if(ls) ls.value = savedLang;
+      var html = document.getElementById('htmlRoot');
+      if(html){ html.lang = savedLang; html.dir = (savedLang === 'ar') ? 'rtl' : 'ltr'; }
+    }
+  } catch(e){ console.error('[Nebula] init lang step failed:', e); }
+
+  try { applyTranslations(); } catch(e){ console.error('[Nebula] applyTranslations failed:', e); }
+
+  try {
+    state.habits = getDefaultHabits();
+    state.rewards = getDefaultRewards();
+  } catch(e){ console.error('[Nebula] default data init failed:', e); }
+
+  try { loadFromStorage(); } catch(e){ console.error('[Nebula] loadFromStorage failed:', e); }
+  try { updateDateChip(); } catch(e){}
+  try { renderAll(); } catch(e){ console.error('[Nebula] renderAll initial failed:', e); }
+  try { initNotes(); } catch(e){ console.error('[Nebula] initNotes failed:', e); }
+  try { initQuotes(); } catch(e){ console.error('[Nebula] initQuotes failed:', e); }
+
+  try {
+    setInterval(function(){
+      try { updateGreeting(); } catch(e){}
+      try { updateDateChip(); } catch(e){}
+    }, 60000);
+  } catch(e){}
+
+  try { checkBackupReminder(); } catch(e){}
+  try { setInterval(checkBackupReminder, 3600000); } catch(e){}
 }
 
-/* ===== Custom Add-to-Home-Screen Banner ===== */
+// DOMContentLoaded — cross-browser safe, independently guarded
+try {
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', function(){ try { init(); } catch(e){ console.error('[Nebula] DOMContentLoaded init error:', e); } });
+  } else {
+    try { init(); } catch(e){ console.error('[Nebula] Synchronous init error:', e); }
+  }
+} catch(e){ console.error('[Nebula] DOMContentLoaded listener setup failed:', e); }
+
+// ===================== SERVICE WORKER (PWA) =====================
+try {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function() {
+      navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function(reg) {
+        console.log('[SW] Registered, scope:', reg.scope);
+      }).catch(function(err) {
+        console.warn('[SW] Registration failed (normal when offline or no sw.js):', err);
+      });
+    });
+  }
+} catch(e){ console.warn('[Nebula] Service Worker setup failed:', e); }
+
+// ===================== ADD-TO-HOME-SCREEN BANNER =====================
+try {
 (function(){
   var DISMISS_KEY = 'nebula_a2hs_dismissed_at';
-  var SNOOZE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+  var SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
 
   function isStandalone(){
-    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-      || window.navigator.standalone === true
-      || document.referrer.indexOf('android-app://') === 0;
+    try {
+      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+        || window.navigator.standalone === true
+        || document.referrer.indexOf('android-app://') === 0;
+    } catch(e){ return false; }
   }
   function isIOS(){
-    var ua = window.navigator.userAgent || '';
-    var iOSDevice = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-    var iPadOS = ua.indexOf('Mac') !== -1 && 'ontouchend' in document;
-    return iOSDevice || iPadOS;
+    try {
+      var ua = window.navigator.userAgent || '';
+      var iOSDevice = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+      var iPadOS = ua.indexOf('Mac') !== -1 && 'ontouchend' in document;
+      return iOSDevice || iPadOS;
+    } catch(e){ return false; }
   }
   function isIOSSafari(){
-    var ua = window.navigator.userAgent || '';
-    return isIOS() && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    try {
+      var ua = window.navigator.userAgent || '';
+      return isIOS() && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    } catch(e){ return false; }
   }
   function recentlyDismissed(){
     try {
-      var t = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
-      return t && (Date.now() - t) < SNOOZE_MS;
+      var tv = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
+      return tv && (Date.now() - tv) < SNOOZE_MS;
     } catch(e){ return false; }
   }
   function dismiss(){
@@ -1759,80 +2117,92 @@ if ('serviceWorker' in navigator) {
     hideBanner();
   }
   function hideBanner(){
-    var b = document.getElementById('nebInstallBanner');
-    if(!b) return;
-    b.classList.remove('show');
-    setTimeout(function(){ if(b && b.parentNode) b.parentNode.removeChild(b); }, 500);
+    try {
+      var b = document.getElementById('nebInstallBanner');
+      if(!b) return;
+      b.classList.remove('show');
+      setTimeout(function(){ try { if(b && b.parentNode) b.parentNode.removeChild(b); } catch(e){} }, 500);
+    } catch(e){}
   }
   function buildBanner(opts){
-    if(document.getElementById('nebInstallBanner')) return;
-    var b = document.createElement('div');
-    b.id = 'nebInstallBanner';
-    b.setAttribute('role','dialog');
-    b.setAttribute('aria-live','polite');
-    b.innerHTML =
-      '<div class="nbi-ico"><i class="fas fa-infinity"></i></div>' +
-      '<div class="nbi-body">' +
-        '<p class="nbi-title">'+opts.title+'</p>' +
-        '<p class="nbi-sub">'+opts.sub+'</p>' +
-      '</div>' +
-      '<div class="nbi-actions">' +
-        (opts.primary ? '<button type="button" class="nbi-btn primary" id="nbiInstallBtn">'+opts.primary+'</button>' : '') +
-        '<button type="button" class="nbi-btn ghost" id="nbiCloseBtn" aria-label="Close">'+opts.close+'</button>' +
-      '</div>';
-    document.body.appendChild(b);
-    requestAnimationFrame(function(){ b.classList.add('show'); });
-    var closeBtn = document.getElementById('nbiCloseBtn');
-    if(closeBtn) closeBtn.addEventListener('click', dismiss);
-    if(opts.onPrimary){
-      var pBtn = document.getElementById('nbiInstallBtn');
-      if(pBtn) pBtn.addEventListener('click', opts.onPrimary);
+    try {
+      if(document.getElementById('nebInstallBanner')) return;
+      var b = document.createElement('div');
+      b.id = 'nebInstallBanner';
+      b.setAttribute('role','dialog');
+      b.setAttribute('aria-live','polite');
+      b.innerHTML =
+        '<div class="nbi-ico"><i class="fas fa-infinity"></i></div>' +
+        '<div class="nbi-body">' +
+          '<p class="nbi-title">'+opts.title+'</p>' +
+          '<p class="nbi-sub">'+opts.sub+'</p>' +
+        '</div>' +
+        '<div class="nbi-actions">' +
+          (opts.primary ? '<button type="button" class="nbi-btn primary" id="nbiInstallBtn">'+opts.primary+'</button>' : '') +
+          '<button type="button" class="nbi-btn ghost" id="nbiCloseBtn" aria-label="Close">'+opts.close+'</button>' +
+        '</div>';
+      document.body.appendChild(b);
+      requestAnimationFrame(function(){ try { b.classList.add('show'); } catch(e){} });
+      var closeBtn = document.getElementById('nbiCloseBtn');
+      if(closeBtn) closeBtn.addEventListener('click', dismiss);
+      if(opts.onPrimary){
+        var pBtn = document.getElementById('nbiInstallBtn');
+        if(pBtn) pBtn.addEventListener('click', opts.onPrimary);
+      }
+    } catch(e){ console.warn('[Nebula] buildBanner error:', e); }
+  }
+
+  try {
+    if(isStandalone() || recentlyDismissed()) return;
+
+    var deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', function(e){
+      try {
+        e.preventDefault();
+        deferredPrompt = e;
+        setTimeout(function(){
+          try {
+            buildBanner({
+              title: 'تثبيت Nebula على جهازك',
+              sub: 'استمتع بتجربة كاملة بدون شريط المتصفح وبدون إنترنت.',
+              primary: 'تثبيت',
+              close: 'لاحقاً',
+              onPrimary: function(){
+                try {
+                  if(!deferredPrompt) return;
+                  deferredPrompt.prompt();
+                  deferredPrompt.userChoice.then(function(choice){
+                    deferredPrompt = null;
+                    if(choice && choice.outcome === 'accepted'){ hideBanner(); }
+                    else { dismiss(); }
+                  }).catch(function(){ dismiss(); });
+                } catch(e2){ dismiss(); }
+              }
+            });
+          } catch(e2){}
+        }, 1800);
+      } catch(e3){}
+    });
+
+    window.addEventListener('appinstalled', function(){
+      try { deferredPrompt = null; hideBanner(); } catch(e){}
+    });
+
+    if(isIOSSafari()){
+      setTimeout(function(){
+        try {
+          if(isStandalone() || recentlyDismissed()) return;
+          buildBanner({
+            title: 'أضف Nebula إلى الشاشة الرئيسية',
+            sub: 'لتثبيت التطبيق: اضغط على زر المشاركة ⬆️ ثم اختر «إضافة إلى الشاشة الرئيسية».',
+            close: 'حسناً'
+          });
+        } catch(e){}
+      }, 2500);
     }
-  }
-
-  if(isStandalone() || recentlyDismissed()) return;
-
-  // Android / Chrome / Edge / Samsung Internet
-  var deferredPrompt = null;
-  window.addEventListener('beforeinstallprompt', function(e){
-    e.preventDefault();
-    deferredPrompt = e;
-    setTimeout(function(){
-      buildBanner({
-        title: 'تثبيت Nebula على جهازك',
-        sub: 'استمتع بتجربة كاملة بدون شريط المتصفح وبدون إنترنت.',
-        primary: 'تثبيت',
-        close: 'لاحقاً',
-        onPrimary: function(){
-          if(!deferredPrompt) return;
-          deferredPrompt.prompt();
-          deferredPrompt.userChoice.then(function(choice){
-            deferredPrompt = null;
-            if(choice && choice.outcome === 'accepted'){ hideBanner(); }
-            else { dismiss(); }
-          }).catch(function(){ dismiss(); });
-        }
-      });
-    }, 1800);
-  });
-
-  window.addEventListener('appinstalled', function(){
-    deferredPrompt = null;
-    hideBanner();
-  });
-
-  // iOS Safari fallback (no beforeinstallprompt support)
-  if(isIOSSafari()){
-    setTimeout(function(){
-      if(isStandalone() || recentlyDismissed()) return;
-      buildBanner({
-        title: 'أضف Nebula إلى الشاشة الرئيسية',
-        sub: 'لتثبيت التطبيق: اضغط على زر المشاركة ⬆️ ثم اختر «إضافة إلى الشاشة الرئيسية».',
-        close: 'حسناً'
-      });
-    }, 2500);
-  }
+  } catch(e){ console.warn('[Nebula] A2HS inner setup failed:', e); }
 })();
+} catch(e){ console.warn('[Nebula] A2HS banner module failed:', e); }
 </script>
 </body>
 </html>
