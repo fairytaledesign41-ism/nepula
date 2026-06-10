@@ -1,61 +1,66 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl" id="htmlRoot">
 <head>
-
-<meta name="robots" content="noindex, nofollow, noarchive">
-
 <link rel="icon" type="image/png" href="logo.png">
 
 <link rel="apple-touch-icon" href="logo.png">
 
 <meta name="mobile-web-app-capable" content="yes">
 <script>
-  // ===== SECURITY: منع الكليك يمين و DevTools =====
-  document.addEventListener('contextmenu', function(e){ e.preventDefault(); return false; });
-  document.addEventListener('keydown', function(e){
-    if(e.keyCode===123) { e.preventDefault(); return false; }
-    if(e.ctrlKey && e.shiftKey && (e.keyCode===73||e.keyCode===74||e.keyCode===67)) { e.preventDefault(); return false; }
-    if(e.ctrlKey && e.keyCode===85) { e.preventDefault(); return false; }
-    if(e.ctrlKey && e.keyCode===83) { e.preventDefault(); return false; }
-  });
-  document.addEventListener('dragstart', function(e){ e.preventDefault(); return false; });
-  document.addEventListener('selectstart', function(e){ e.preventDefault(); return false; });
+  /* ================================================================
+     NEBULA — DOMAIN LOCK  (runs synchronously, first script in head)
+     Allowed: your production hostname + localhost for local dev.
+     ► SET YOUR OFFICIAL DOMAIN BELOW ◄
+  ================================================================ */
+  (function () {
+    var ALLOWED = [
+      'nepulahabits.vercel.app', // ← replace with your real domain
+      'localhost',
+      '127.0.0.1'
+    ];
+    var host = (window.location.hostname || '').toLowerCase().replace(/^www\./, '');
+    if (ALLOWED.indexOf(host) !== -1) return; // authorised — do nothing
 
-  // ===== BULLETPROOF IN-MEMORY STORAGE FALLBACK =====
-  // Must run synchronously before ANY other JS. If localStorage is blocked
-  // (iOS private mode, Samsung One UI strict privacy, offline containers),
-  // this proxy silently absorbs every call so nothing downstream ever throws.
-  (function() {
-    var _mem = {};
-    var _safeStorage = {
-      getItem:    function(k){ return Object.prototype.hasOwnProperty.call(_mem, k) ? _mem[k] : null; },
-      setItem:    function(k, v){ _mem[k] = String(v); },
-      removeItem: function(k){ delete _mem[k]; },
-      clear:      function(){ _mem = {}; },
-      key:        function(i){ return Object.keys(_mem)[i] || null; },
-      get length(){ return Object.keys(_mem).length; }
-    };
-    try {
-      // Perform a real read/write/delete test — the only reliable method.
-      var _testKey = '__nebula_ls_test__';
-      localStorage.setItem(_testKey, '1');
-      localStorage.removeItem(_testKey);
-      // localStorage works — leave window.localStorage intact.
-    } catch(e) {
-      // localStorage is broken/blocked: install the in-memory proxy globally.
-      try {
-        Object.defineProperty(window, 'localStorage', {
-          value: _safeStorage, writable: false, configurable: true
-        });
-      } catch(e2) {
-        // defineProperty itself failed (very old WebView). Just override directly.
-        window.localStorage = _safeStorage;
-      }
-    }
+    /* Unauthorised host: wipe the document and show Access Denied */
+    document.addEventListener('DOMContentLoaded', function () {
+      document.documentElement.innerHTML =
+        '<!DOCTYPE html><html><head>' +
+        '<meta charset="UTF-8">' +
+        '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<title>Access Denied</title>' +
+        '<style>' +
+          '*{margin:0;padding:0;box-sizing:border-box}' +
+          'body{min-height:100vh;background:#0b0f17;display:flex;' +
+               'align-items:center;justify-content:center;' +
+               'font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased}' +
+          '.box{background:#111827;border:1px solid rgba(239,68,68,0.25);' +
+               'border-radius:20px;padding:52px 44px;max-width:440px;width:calc(100vw - 40px);' +
+               'text-align:center;box-shadow:0 0 60px rgba(239,68,68,0.1)}' +
+          '.icon{font-size:48px;margin-bottom:20px}' +
+          'h1{color:#ef4444;font-size:22px;font-weight:800;margin-bottom:10px}' +
+          'p{color:#64748b;font-size:14px;line-height:1.7}' +
+          'code{color:#94a3b8;background:rgba(255,255,255,0.06);' +
+               'padding:2px 8px;border-radius:6px;font-size:13px}' +
+        '</style>' +
+        '</head><body>' +
+          '<div class="box">' +
+            '<div class="icon">&#128274;</div>' +
+            '<h1>Access Denied</h1>' +
+            '<p>This application is not authorised to run on<br>' +
+            '<code>' + document.createElement('span').appendChild(
+                          document.createTextNode(window.location.hostname)
+                        ) + window.location.hostname + '</code>.<br><br>' +
+            'Please access the app through its official URL.</p>' +
+          '</div>' +
+        '</body></html>';
+    });
+
+    /* Also stop inline scripts from running by throwing synchronously */
+    throw new Error('[Nebula] Unauthorised domain: ' + window.location.hostname);
   })();
 </script>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <!-- PWA Meta Tags -->
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -64,41 +69,13 @@
 <meta name="theme-color" content="#0b0f17">
 <meta name="application-name" content="Nebula">
 <!-- Manifest inline via Data URI for full PWA standalone (hides browser bar) -->
-<link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22Nebula%22%2C%22short_name%22%3A%22Nebula%22%2C%22start_url%22%3A%22.%2Findex.html%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0f17%22%2C%22theme_color%22%3A%22%230b0f17%22%2C%22orientation%22%3A%22portrait%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22logo.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%2C%22purpose%22%3A%22any%20maskable%22%7D%5D%7D">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Nebula%20%E2%80%94%20Habit%20Tracker%22%2C%22short_name%22%3A%22Nebula%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22orientation%22%3A%22portrait-primary%22%2C%22background_color%22%3A%22%230b0f17%22%2C%22theme_color%22%3A%22%230b0f17%22%2C%22lang%22%3A%22ar%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fpng%3Bbase64%2CiVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk%2BM9QDwADhgGAWjR9awAAAABJRU5ErkJggg%3D%3D%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
 
 <title id="pageTitle">Nebula — متتبع العادات الرقمي</title>
-
-<!-- ===== SAFE EXTERNAL RESOURCE LOADING =====
-     All CDN resources load with onerror handlers that suppress failures
-     when the network is absent. App logic checks for library availability
-     before using it, so nothing crashes if a CDN is unreachable offline. -->
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Cairo:wght@400;500;600;700;800&display=swap"
-      rel="stylesheet"
-      onerror="this.remove()">
-<link rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-      onerror="this.remove()">
-
-<!-- Chart.js — loaded with a safe async pattern; app checks window.Chart before use -->
-<script>
-(function(){
-  var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-  s.onerror = function(){ window._chartJsLoadFailed = true; console.warn('[Nebula] Chart.js failed to load (offline?). Charts will be skipped.'); };
-  document.head.appendChild(s);
-})();
-</script>
-
-<!-- canvas-confetti — optional enhancement; guarded at call sites -->
-<script>
-(function(){
-  var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js';
-  s.onerror = function(){ console.warn('[Nebula] canvas-confetti failed to load (offline?). Confetti will be skipped.'); };
-  document.head.appendChild(s);
-})();
-</script>
-
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Tajawal:wght@400;500;700;800&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 <style>
 :root {
   --bg-deep: #0b0f17;
@@ -327,9 +304,6 @@ html[dir="ltr"] .reward-card .threshold-label { font-size:11px; color:var(--text
 /* ===== CHARTS ===== */
 .chart-card { min-height:320px; }
 .chart-container { position:relative; height:260px; }
-/* Shown when Chart.js failed to load offline */
-.chart-offline-msg { display:flex; align-items:center; justify-content:center; height:100%; color:var(--text-muted); font-size:13px; text-align:center; padding:20px; flex-direction:column; gap:8px; }
-.chart-offline-msg i { font-size:28px; opacity:0.3; }
 
 /* ===== MODAL ===== */
 .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.7); -webkit-backdrop-filter:blur(8px); backdrop-filter:blur(8px); display:none; -webkit-align-items:center; align-items:center; -webkit-justify-content:center; justify-content:center; z-index:500; padding:20px; }
@@ -415,7 +389,7 @@ html[dir="ltr"] .toast { right:28px; }
   overflow:hidden; min-height:480px;
 }
 .notes-sidebar-header {
-  padding:16px 18px; border-bottom:1px solid var(--border); flex-shrink:0;
+  padding:16px 18px; border-bottom:1px solid var(--border);
   display:-webkit-flex; display:flex; -webkit-align-items:center; align-items:center;
   -webkit-justify-content:space-between; justify-content:space-between; gap:10px; flex-shrink:0;
 }
@@ -492,45 +466,364 @@ html[dir="ltr"] .toast { right:28px; }
 .notes-empty-editor i { font-size:44px; opacity:0.18; }
 .notes-empty-editor p { font-size:14px; line-height:1.65; max-width:240px; }
 
-/* ===== Install Banner (A2HS) ===== */
-#nebInstallBanner{
-  position:fixed; left:50%; bottom:18px; transform:translateX(-50%) translateY(140%);
-  z-index:9999; max-width:calc(100% - 24px); width:420px;
-  background:linear-gradient(135deg, rgba(17,24,39,.96), rgba(11,15,23,.96));
-  border:1px solid rgba(168,85,247,.45);
-  box-shadow:0 12px 40px rgba(0,0,0,.55), 0 0 24px rgba(168,85,247,.25);
-  border-radius:18px; padding:14px 16px; color:#e5e7eb;
-  display:flex; align-items:center; gap:12px;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  transition: transform .45s cubic-bezier(.2,.9,.25,1.1), opacity .3s;
-  font-family:'Cairo','Inter',sans-serif; opacity:0;
+/* ===== FEATURE 1: XP & LEVEL BAR (appended — no existing styles changed) ===== */
+.xp-level-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 18px 24px; margin-top: 20px; position: relative; overflow: hidden;
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center; gap: 18px;
 }
-#nebInstallBanner.show{ transform:translateX(-50%) translateY(0); opacity:1; }
-#nebInstallBanner .nbi-ico{
-  width:42px;height:42px;border-radius:12px;flex-shrink:0;
-  background:linear-gradient(135deg,#4c1d95,#db2777);
-  display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;
-  box-shadow:0 0 14px rgba(219,39,119,.45);
+.xp-level-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(168,85,247,0.06), rgba(56,189,248,0.04));
+  pointer-events: none;
 }
-#nebInstallBanner .nbi-body{flex:1;min-width:0;}
-#nebInstallBanner .nbi-title{font-weight:700;font-size:14px;color:#fff;margin:0 0 2px;}
-#nebInstallBanner .nbi-sub{font-size:12px;color:#9ca3af;line-height:1.45;margin:0;}
-#nebInstallBanner .nbi-actions{display:flex;gap:6px;flex-shrink:0;}
-#nebInstallBanner .nbi-btn{
-  border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:12px;
-  padding:8px 12px;border-radius:10px;transition:transform .15s, box-shadow .15s;
+.xp-level-badge {
+  width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: #fff;
+  box-shadow: 0 0 22px var(--neon-purple-glow);
+  transition: box-shadow 0.4s ease, transform 0.4s ease;
 }
-#nebInstallBanner .nbi-btn.primary{
-  background:linear-gradient(135deg,#a855f7,#ec4899);color:#fff;
-  box-shadow:0 4px 14px rgba(168,85,247,.4);
+.xp-level-badge.level-up-anim {
+  animation: xpLevelPulse 0.7s cubic-bezier(0.34,1.56,0.64,1);
 }
-#nebInstallBanner .nbi-btn.primary:active{transform:scale(.96);}
-#nebInstallBanner .nbi-btn.ghost{background:transparent;color:#9ca3af;}
-#nebInstallBanner .nbi-btn.ghost:hover{color:#fff;}
-@media (max-width:480px){
-  #nebInstallBanner{flex-wrap:wrap; padding:12px;}
-  #nebInstallBanner .nbi-actions{width:100%;justify-content:flex-end;}
+@keyframes xpLevelPulse {
+  0%   { transform: scale(1);    box-shadow: 0 0 22px var(--neon-purple-glow); }
+  40%  { transform: scale(1.35); box-shadow: 0 0 50px var(--neon-purple-glow), 0 0 80px rgba(168,85,247,0.5); }
+  100% { transform: scale(1);    box-shadow: 0 0 22px var(--neon-purple-glow); }
 }
+.xp-info { flex: 1; min-width: 0; }
+.xp-info-top {
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: space-between; justify-content: space-between; margin-bottom: 8px;
+}
+.xp-level-label { font-size: 13px; font-weight: 700; color: var(--text-primary); }
+.xp-count-label { font-size: 11px; color: var(--text-muted); font-weight: 500; }
+.xp-bar-track {
+  height: 8px; background: var(--bg-elevated); border-radius: 10px; overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);
+}
+.xp-bar-fill {
+  height: 100%; border-radius: 10px;
+  background: linear-gradient(90deg, var(--neon-purple), var(--neon-blue));
+  box-shadow: 0 0 10px var(--neon-purple-glow);
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.xp-bar-fill.xp-gained { animation: xpFlash 0.5s ease; }
+@keyframes xpFlash {
+  0%   { filter: brightness(1); }
+  45%  { filter: brightness(2) saturate(1.5); }
+  100% { filter: brightness(1); }
+}
+/* Level-up glow overlay */
+.level-up-overlay {
+  position: fixed; inset: 0; pointer-events: none; z-index: 800;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; transition: opacity 0.3s;
+}
+.level-up-overlay.show { opacity: 1; animation: levelUpFadeOut 2.2s ease forwards; }
+@keyframes levelUpFadeOut {
+  0%   { opacity: 0; }
+  15%  { opacity: 1; }
+  75%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+.level-up-text {
+  background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+  color: #fff; padding: 18px 38px; border-radius: 20px; font-size: 22px; font-weight: 800;
+  box-shadow: 0 0 60px var(--neon-purple-glow), 0 0 120px rgba(168,85,247,0.3);
+  animation: levelUpBounce 0.6s cubic-bezier(0.34,1.56,0.64,1);
+  letter-spacing: -0.3px;
+}
+@keyframes levelUpBounce {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ===== FEATURE 2: POMODORO TIMER (appended — no existing styles changed) ===== */
+.pomodoro-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 28px 24px; margin-top: 20px; text-align: center; position: relative; overflow: hidden;
+}
+.pomodoro-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(52,211,153,0.05), rgba(168,85,247,0.04));
+  pointer-events: none;
+}
+.pomodoro-header {
+  display: -webkit-flex; display: flex; -webkit-align-items: center; align-items: center;
+  -webkit-justify-content: space-between; justify-content: space-between; margin-bottom: 22px;
+}
+.pomodoro-title { font-size: 14px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
+.pomodoro-mode-badge {
+  font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px;
+  transition: all 0.3s ease;
+}
+.pomodoro-mode-badge.work  { background: rgba(168,85,247,0.15); color: var(--neon-purple); border: 1px solid rgba(168,85,247,0.25); }
+.pomodoro-mode-badge.break { background: rgba(52,211,153,0.15); color: var(--neon-green);  border: 1px solid rgba(52,211,153,0.25); }
+.pomodoro-ring-wrap { position: relative; width: 150px; height: 150px; margin: 0 auto 22px auto; }
+.pomodoro-svg { transform: rotate(-90deg); }
+.pomodoro-track { fill: none; stroke: var(--bg-elevated); stroke-width: 7; }
+.pomodoro-progress { fill: none; stroke-width: 7; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s ease; }
+.pomodoro-time-display {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  font-size: 32px; font-weight: 800; letter-spacing: -1px; color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.pomodoro-session-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; text-align: center; }
+.pomodoro-controls { display: -webkit-flex; display: flex; gap: 10px; -webkit-justify-content: center; justify-content: center; margin-top: 4px; }
+.pomo-btn {
+  padding: 10px 22px; border-radius: var(--radius-sm); border: none; font-family: inherit;
+  font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.pomo-btn-start  { background: linear-gradient(135deg, var(--neon-green), #059669); color: #fff; box-shadow: 0 4px 18px var(--neon-green-glow); }
+.pomo-btn-start:hover  { transform: translateY(-2px); box-shadow: 0 7px 26px var(--neon-green-glow); }
+.pomo-btn-pause  { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.25); color: var(--neon-amber); }
+.pomo-btn-pause:hover  { background: rgba(251,191,36,0.2); }
+.pomo-btn-reset  { background: var(--bg-elevated); border: 1px solid var(--border); color: var(--text-secondary); }
+.pomo-btn-reset:hover  { background: var(--bg-hover); color: var(--text-primary); }
+.pomo-xp-hint { font-size: 11px; color: var(--text-muted); margin-top: 14px; }
+.pomo-xp-hint span { color: var(--neon-purple); font-weight: 700; }
+
+/* ===== FEATURE 3: AI INSIGHTS CARD (appended — no existing styles changed) ===== */
+.nebula-insights-card {
+  background: var(--bg-card); border: 1px solid rgba(168,85,247,0.2); border-radius: var(--radius);
+  padding: 22px 24px; margin-top: 20px; position: relative; overflow: hidden;
+}
+.nebula-insights-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(168,85,247,0.07), rgba(244,114,182,0.04));
+  pointer-events: none;
+}
+.nebula-insights-header {
+  display: -webkit-flex; display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
+}
+.nebula-insights-icon {
+  width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+  background: rgba(168,85,247,0.14); color: var(--neon-purple);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+  box-shadow: 0 0 12px var(--neon-purple-glow);
+}
+.nebula-insights-title { font-size: 13px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+.nebula-insights-body { display: flex; flex-direction: column; gap: 10px; }
+.insight-item {
+  display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px;
+  background: var(--bg-elevated); border-radius: var(--radius-sm);
+  border: 1px solid var(--border); transition: border-color 0.25s;
+}
+.insight-item:hover { border-color: rgba(168,85,247,0.3); }
+.insight-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+  box-shadow: 0 0 6px currentColor;
+}
+.insight-text { font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+.insight-text strong { color: var(--text-primary); }
+
+/* ===== NEW FEATURE A: LONG-TERM INTERVAL HABITS (isolated module) ===== */
+.lt-section-header {
+  display: -webkit-flex; display: flex; align-items: center;
+  justify-content: space-between; margin-bottom: 16px; margin-top: 28px; flex-wrap: wrap; gap: 12px;
+}
+.lt-section-title {
+  font-size: 15px; font-weight: 700; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 8px;
+}
+.lt-section-title i { color: var(--neon-amber); font-size: 14px; }
+.lt-add-btn {
+  padding: 8px 16px; border-radius: var(--radius-sm); border: 1px solid rgba(251,191,36,0.3);
+  background: rgba(251,191,36,0.08); color: var(--neon-amber); font-family: inherit;
+  font-size: 12px; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center;
+  gap: 7px; transition: all var(--transition);
+}
+.lt-add-btn:hover { background: rgba(251,191,36,0.16); box-shadow: 0 0 14px var(--neon-amber-glow); transform: translateY(-1px); }
+.lt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+.lt-card {
+  background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 20px; position: relative; overflow: hidden;
+  transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+}
+.lt-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
+.lt-card::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, rgba(251,191,36,0.04), rgba(168,85,247,0.03));
+  pointer-events: none;
+}
+.lt-card.lt-due {
+  border-color: var(--neon-amber);
+  box-shadow: 0 0 0 1px var(--neon-amber), 0 0 28px var(--neon-amber-glow), inset 0 0 24px rgba(251,191,36,0.06);
+  animation: ltDuePulse 2.2s ease-in-out infinite;
+}
+@keyframes ltDuePulse {
+  0%, 100% { box-shadow: 0 0 0 1px var(--neon-amber), 0 0 28px var(--neon-amber-glow), inset 0 0 24px rgba(251,191,36,0.06); }
+  50%       { box-shadow: 0 0 0 1px var(--neon-amber), 0 0 48px rgba(251,191,36,0.6),   inset 0 0 36px rgba(251,191,36,0.12); }
+}
+.lt-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+.lt-card-left { display: flex; align-items: center; gap: 10px; }
+.lt-card-emoji { font-size: 26px; line-height: 1; flex-shrink: 0; }
+.lt-card-info { min-width: 0; }
+.lt-card-name { font-size: 14px; font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lt-card-interval { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.lt-card-del {
+  width: 28px; height: 28px; border-radius: 8px; border: none; flex-shrink: 0;
+  background: rgba(244,114,182,0.08); color: var(--neon-pink); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 11px;
+  transition: all var(--transition);
+}
+.lt-card-del:hover { background: rgba(244,114,182,0.2); box-shadow: 0 0 10px var(--neon-pink-glow); }
+.lt-countdown {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.lt-countdown-num {
+  font-size: 28px; font-weight: 800; letter-spacing: -1px; color: var(--neon-amber);
+  line-height: 1; min-width: 2.2ch; text-align: right;
+}
+.lt-countdown-num.overdue { color: var(--neon-red); }
+.lt-countdown-num.done    { color: var(--neon-green); }
+.lt-countdown-label { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+.lt-progress-wrap { height: 6px; background: var(--bg-elevated); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+.lt-progress-fill {
+  height: 100%; border-radius: 10px;
+  background: linear-gradient(90deg, var(--neon-purple), var(--neon-amber));
+  box-shadow: 0 0 8px var(--neon-amber-glow);
+  transition: width 0.7s cubic-bezier(0.4,0,0.2,1);
+}
+.lt-complete-btn {
+  width: 100%; padding: 10px; border-radius: var(--radius-sm); border: none;
+  font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer;
+  background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.25);
+  color: var(--neon-amber); transition: all var(--transition);
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.lt-complete-btn:hover { background: rgba(251,191,36,0.2); box-shadow: 0 0 18px var(--neon-amber-glow); transform: translateY(-1px); }
+.lt-complete-btn.lt-due-btn {
+  background: linear-gradient(135deg, var(--neon-amber), #d97706);
+  color: #000; border-color: transparent; box-shadow: 0 4px 20px var(--neon-amber-glow);
+}
+.lt-complete-btn.lt-due-btn:hover { box-shadow: 0 6px 30px rgba(251,191,36,0.6); transform: translateY(-2px); }
+.lt-xp-burst {
+  font-size: 11px; color: var(--neon-purple); font-weight: 700; text-align: center;
+  margin-top: 8px; opacity: 0.75;
+}
+/* Add-habit modal panel */
+.lt-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  display: none; align-items: center; justify-content: center; z-index: 550; padding: 20px;
+}
+.lt-modal-overlay.show { display: -webkit-flex; display: flex; animation: fadeUp 0.3s ease; }
+.lt-modal {
+  background: var(--bg-card); border: 1px solid rgba(251,191,36,0.25);
+  border-radius: var(--radius); padding: 28px; max-width: 440px; width: 100%;
+  box-shadow: 0 0 48px rgba(251,191,36,0.12);
+}
+.lt-modal-title { font-size: 18px; font-weight: 800; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+.lt-modal-title i { color: var(--neon-amber); }
+.lt-form-row { display: flex; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.lt-form-row input, .lt-form-row select {
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 14px; color: var(--text-primary); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color 0.25s; flex: 1; min-width: 120px;
+}
+.lt-form-row input:focus, .lt-form-row select:focus { border-color: var(--neon-amber); box-shadow: 0 0 10px var(--neon-amber-glow); }
+.lt-form-row label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 500; }
+.lt-form-field { display: flex; flex-direction: column; flex: 1; min-width: 120px; }
+.lt-modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.lt-btn-cancel { padding: 10px 20px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-elevated); color: var(--text-secondary); font-family: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: all var(--transition); }
+.lt-btn-cancel:hover { background: var(--bg-hover); color: var(--text-primary); }
+.lt-btn-save { padding: 10px 24px; border-radius: var(--radius-sm); border: none; background: linear-gradient(135deg, var(--neon-amber), #d97706); color: #000; font-family: inherit; font-size: 13px; font-weight: 700; cursor: pointer; transition: all var(--transition); box-shadow: 0 4px 16px var(--neon-amber-glow); }
+.lt-btn-save:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(251,191,36,0.5); }
+.lt-empty { text-align: center; padding: 36px 20px; color: var(--text-muted); font-size: 13px; background: var(--bg-card); border: 1px dashed rgba(255,255,255,0.06); border-radius: var(--radius); }
+.lt-empty i { font-size: 32px; display: block; margin-bottom: 10px; opacity: 0.25; }
+
+/* ===== TIME PICKER STYLING ===== */
+.lt-time-field { display: flex; flex-direction: column; flex: 0 0 140px; min-width: 120px; }
+.lt-time-field label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 5px; font-weight: 500; }
+.lt-time-input {
+  background: var(--bg-elevated); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 11px 14px; color: var(--text-primary); font-family: inherit; font-size: 13px; outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s; width: 100%;
+  -webkit-appearance: none; appearance: none; color-scheme: dark;
+}
+.lt-time-input:focus { border-color: var(--neon-purple); box-shadow: 0 0 10px var(--neon-purple-glow); }
+.lt-time-input::-webkit-calendar-picker-indicator {
+  filter: invert(0.7) sepia(1) saturate(5) hue-rotate(250deg);
+  cursor: pointer; opacity: 0.7; transition: opacity 0.2s;
+}
+.lt-time-input::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+.lt-card-reminder {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; color: var(--neon-purple); font-weight: 600;
+  background: rgba(168,85,247,0.10); border: 1px solid rgba(168,85,247,0.22);
+  border-radius: 8px; padding: 3px 8px; margin-top: 4px;
+}
+.lt-card-reminder i { font-size: 10px; }
+
+/* ===== DAYS OF WEEK SELECTOR ===== */
+.lt-days-label { font-size: 12px; color: var(--text-muted); display: block; margin-bottom: 8px; font-weight: 500; }
+.lt-days-row {
+  display: flex; gap: 7px; flex-wrap: wrap; margin-bottom: 14px;
+}
+.lt-day-btn {
+  flex: 1; min-width: 38px; padding: 8px 4px; border-radius: 10px;
+  border: 1px solid rgba(168,85,247,0.25);
+  background: rgba(168,85,247,0.06);
+  color: var(--text-muted); font-family: inherit; font-size: 11px; font-weight: 700;
+  cursor: pointer; text-align: center; transition: all 0.25s ease;
+  position: relative; overflow: hidden; user-select: none; -webkit-user-select: none;
+  letter-spacing: 0.3px;
+}
+.lt-day-btn:hover {
+  border-color: rgba(168,85,247,0.55);
+  background: rgba(168,85,247,0.12);
+  color: var(--text-primary);
+  box-shadow: 0 0 10px rgba(168,85,247,0.25);
+}
+.lt-day-btn.selected {
+  border-color: var(--neon-purple);
+  background: rgba(168,85,247,0.18);
+  color: var(--neon-purple);
+  box-shadow: 0 0 14px rgba(168,85,247,0.45), inset 0 0 8px rgba(168,85,247,0.08);
+  text-shadow: 0 0 8px rgba(168,85,247,0.7);
+}
+.lt-day-btn.selected-green {
+  border-color: var(--neon-green);
+  background: rgba(52,211,153,0.12);
+  color: var(--neon-green);
+  box-shadow: 0 0 14px rgba(52,211,153,0.35), inset 0 0 8px rgba(52,211,153,0.06);
+  text-shadow: 0 0 8px rgba(52,211,153,0.6);
+}
+.lt-days-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 14px; margin-top: -6px; opacity: 0.7; }
+.lt-card-days { font-size: 11px; color: var(--neon-purple); margin-top: 3px; font-weight: 600; }
+.lt-card-days i { font-size: 9px; margin-inline-end: 4px; opacity: 0.7; }
+
+/* ===== NEW FEATURE B: NOTIFICATION PERMISSION BUTTON ===== */
+.notif-permission-bar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  background: rgba(56,189,248,0.06); border: 1px solid rgba(56,189,248,0.2);
+  border-radius: var(--radius-sm); padding: 13px 18px; margin-top: 20px;
+}
+.notif-permission-bar.hidden { display: none; }
+.notif-bar-left { display: flex; align-items: center; gap: 10px; }
+.notif-bar-icon { color: var(--neon-blue); font-size: 16px; }
+.notif-bar-text { font-size: 13px; color: var(--text-secondary); font-weight: 500; }
+.notif-bar-text span { color: var(--text-primary); font-weight: 700; }
+.notif-enable-btn {
+  padding: 8px 18px; border-radius: var(--radius-sm); border: none;
+  background: linear-gradient(135deg, var(--neon-blue), #0284c7); color: #fff;
+  font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer;
+  transition: all var(--transition); box-shadow: 0 4px 14px var(--neon-blue-glow);
+  display: flex; align-items: center; gap: 6px;
+}
+.notif-enable-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56,189,248,0.45); }
+.notif-dismiss-btn {
+  background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 16px;
+  padding: 4px; transition: color 0.2s; line-height: 1;
+}
+.notif-dismiss-btn:hover { color: var(--text-secondary); }
 </style>
 </head>
 <body>
@@ -543,6 +836,7 @@ html[dir="ltr"] .toast { right:28px; }
   <div class="nav-item" onclick="navigate(this,'rewards')"><i class="fas fa-gift"></i><span class="nav-label" data-key="navRewards">Rewards</span></div>
   <div class="nav-item" onclick="navigate(this,'analytics')"><i class="fas fa-chart-line"></i><span class="nav-label" data-key="navAnalytics">Analytics</span></div>
   <div class="nav-item" onclick="navigate(this,'notes')"><i class="fas fa-book-open"></i><span class="nav-label" data-key="navNotes">Notes</span></div>
+  <div class="nav-item" onclick="navigate(this,'longterm')"><i class="fas fa-hourglass-half"></i><span class="nav-label" data-key="navIntervalHabits">Interval Habits</span></div>
   <div class="spacer"></div>
   <div class="user-avatar">N</div>
 </nav>
@@ -613,6 +907,29 @@ html[dir="ltr"] .toast { right:28px; }
         <div class="chart-container"><canvas id="categoryChart"></canvas></div>
       </div>
     </div>
+
+    <!-- FEATURE 1: XP Level Bar (appended into dashboard) -->
+    <div class="xp-level-card" id="xpLevelCard">
+      <div class="xp-level-badge" id="xpLevelBadge">Lv1</div>
+      <div class="xp-info">
+        <div class="xp-info-top">
+          <span class="xp-level-label" id="xpLevelTitle">Level 1 — Explorer</span>
+          <span class="xp-count-label" id="xpCountLabel">0 / 200 XP</span>
+        </div>
+        <div class="xp-bar-track"><div class="xp-bar-fill" id="xpBarFill" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- FEATURE 3: AI Insights Card (appended into dashboard) -->
+    <div class="nebula-insights-card" id="nebulaInsightsCard">
+      <div class="nebula-insights-header">
+        <div class="nebula-insights-icon"><i class="fas fa-brain"></i></div>
+        <span class="nebula-insights-title" data-key="insightsTitle">Nebula Recommendations</span>
+      </div>
+      <div class="nebula-insights-body" id="nebulaInsightsBody">
+        <div class="insight-item"><div class="insight-dot" style="color:var(--neon-purple);background:var(--neon-purple)"></div><div class="insight-text">Analyzing your habits…</div></div>
+      </div>
+    </div>
   </section>
 
   <!-- ===== TRACKER ===== -->
@@ -632,6 +949,31 @@ html[dir="ltr"] .toast { right:28px; }
         <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:4px;background:var(--bg-elevated);border:1px solid var(--border);display:inline-block;"></span> <span data-key="lblIncomplete">Incomplete</span></span>
         <span style="display:flex;align-items:center;gap:6px;"><span style="width:14px;height:14px;border-radius:4px;background:var(--neon-green);display:inline-block;box-shadow:0 0 8px var(--neon-green-glow);"></span> <span data-key="lblCompleted">Completed</span></span>
       </div>
+    </div>
+
+    <!-- FEATURE 2: Pomodoro Timer (appended into tracker section) -->
+    <div class="pomodoro-card" id="pomodoroCard">
+      <div class="pomodoro-header">
+        <div class="pomodoro-title"><i class="fas fa-stopwatch" style="color:var(--neon-green)"></i> <span data-key="pomoTitle">Pomodoro Focus Timer</span></div>
+        <div class="pomodoro-mode-badge work" id="pomoModeBadge">Work Session</div>
+      </div>
+      <div class="pomodoro-ring-wrap">
+        <svg class="pomodoro-svg" width="150" height="150" viewBox="0 0 150 150">
+          <circle class="pomodoro-track" cx="75" cy="75" r="65"/>
+          <circle class="pomodoro-progress" id="pomoProgressCircle" cx="75" cy="75" r="65"
+            stroke="var(--neon-green)"
+            stroke-dasharray="408.41"
+            stroke-dashoffset="0"/>
+        </svg>
+        <div class="pomodoro-time-display" id="pomoTimeDisplay">25:00</div>
+      </div>
+      <div class="pomodoro-session-label" id="pomoSessionLabel">Session 1 · Work</div>
+      <div class="pomodoro-controls" style="margin-top:16px;">
+        <button class="pomo-btn pomo-btn-start" id="pomoBtnStart" onclick="pomodoroStart()"><i class="fas fa-play"></i> Start</button>
+        <button class="pomo-btn pomo-btn-pause" id="pomoBtnPause" onclick="pomodoroPause()" style="display:none"><i class="fas fa-pause"></i> Pause</button>
+        <button class="pomo-btn pomo-btn-reset" onclick="pomodoroReset()"><i class="fas fa-redo"></i> Reset</button>
+      </div>
+      <div class="pomo-xp-hint" data-key="pomoXpHint">Complete a work session to earn <span>+100 XP</span></div>
     </div>
   </section>
 
@@ -694,6 +1036,7 @@ html[dir="ltr"] .toast { right:28px; }
   <section class="section" id="notes">
     <div class="section-title"><i class="fas fa-book-open"></i> <span data-key="titleNotes">Notes &amp; Journal</span></div>
     <div class="notes-layout">
+      <!-- Sidebar: note list -->
       <div class="notes-sidebar">
         <div class="notes-sidebar-header">
           <h3 data-key="navNotes">Notes</h3>
@@ -706,6 +1049,7 @@ html[dir="ltr"] .toast { right:28px; }
           </div>
         </div>
       </div>
+      <!-- Editor -->
       <div class="notes-editor" id="notesEditorPanel">
         <div class="notes-editor-header">
           <span class="notes-autosave-status" id="notesStatus">
@@ -716,10 +1060,12 @@ html[dir="ltr"] .toast { right:28px; }
             <i class="fas fa-trash-alt"></i>
           </button>
         </div>
+        <!-- Empty state (shown when no note selected) -->
         <div class="notes-empty-editor" id="notesEmptyState">
           <i class="fas fa-pen-nib"></i>
           <p data-key="notesSelectOrCreate">Select a note or create a new one to start writing.</p>
         </div>
+        <!-- Edit area (hidden until a note is opened) -->
         <div id="notesEditArea" style="display:none;-webkit-flex:1;flex:1;display:none;-webkit-flex-direction:column;flex-direction:column;">
           <input type="text" class="notes-title-input" id="notesTitleInput" placeholder="Note title…">
           <textarea class="notes-content-textarea" id="notesBodyInput" placeholder="Start writing your thoughts…"></textarea>
@@ -727,9 +1073,99 @@ html[dir="ltr"] .toast { right:28px; }
       </div>
     </div>
   </section>
+
+  <!-- ===== LONG-TERM INTERVAL HABITS SECTION ===== -->
+  <section class="section" id="longterm">
+    <div class="section-title"><i class="fas fa-hourglass-half" style="color:var(--neon-amber)"></i> <span data-key="titleIntervalHabits">Interval &amp; Long-Term Habits</span></div>
+
+    <!-- Notification Permission Bar (shown if notifications not yet granted) -->
+    <div class="notif-permission-bar" id="notifPermissionBar">
+      <div class="notif-bar-left">
+        <i class="fas fa-bell notif-bar-icon"></i>
+        <span class="notif-bar-text"><span data-key="notifEnableTitle">Enable Reminders</span> — <span data-key="notifEnableDesc">get notified when interval habits are due &amp; for evening habit nudges</span></span>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="notif-enable-btn" onclick="ltRequestNotificationPermission()">
+          <i class="fas fa-bell"></i> <span data-key="notifEnableBtn">Enable</span>
+        </button>
+        <button class="notif-dismiss-btn" onclick="ltDismissNotifBar()" title="Dismiss">✕</button>
+      </div>
+    </div>
+
+    <!-- Long-term habits grid -->
+    <div class="lt-section-header">
+      <div class="lt-section-title"><i class="fas fa-infinity"></i> <span data-key="ltYourHabits">Your Interval Habits</span></div>
+      <button class="lt-add-btn" onclick="ltOpenAddModal()"><i class="fas fa-plus"></i> <span data-key="ltAddBtn">New Interval Habit</span></button>
+    </div>
+    <div id="ltGrid" class="lt-grid"></div>
+  </section>
 </main>
 
-<!-- Reward Modal -->
+<!-- LONG-TERM HABIT ADD MODAL -->
+<div class="lt-modal-overlay" id="ltModalOverlay">
+  <div class="lt-modal">
+    <div class="lt-modal-title"><i class="fas fa-hourglass-half"></i> <span data-key="ltModalTitle">New Interval Habit</span></div>
+    <div class="lt-form-row">
+      <div class="lt-form-field" style="flex:2">
+        <label data-key="ltLabelName">Habit Name</label>
+        <input type="text" id="ltName" placeholder="e.g. Clean AC Filters" maxlength="48">
+      </div>
+      <div class="lt-form-field" style="flex:0 0 70px">
+        <label data-key="ltLabelEmoji">Emoji</label>
+        <input type="text" id="ltEmoji" placeholder="🔧" maxlength="2" value="🔁">
+      </div>
+    </div>
+    <div class="lt-form-row">
+      <div class="lt-form-field">
+        <label data-key="ltLabelRepeat">Repeat Every</label>
+        <input type="number" id="ltIntervalDays" min="1" max="365" value="7" placeholder="7">
+      </div>
+      <div class="lt-form-field">
+        <label data-key="ltLabelUnit">Unit</label>
+        <select id="ltIntervalUnit">
+          <option value="days" data-key="ltOptDays">Days</option>
+          <option value="weeks" data-key="ltOptWeeks">Weeks</option>
+          <option value="months" data-key="ltOptMonths">Months</option>
+        </select>
+      </div>
+      <div class="lt-form-field">
+        <label data-key="ltLabelXP">XP Reward</label>
+        <select id="ltXpReward">
+          <option value="300">300 XP</option>
+          <option value="500" selected>500 XP</option>
+          <option value="750">750 XP</option>
+          <option value="1000">1000 XP</option>
+        </select>
+      </div>
+      <div class="lt-time-field">
+        <label data-key="ltLabelReminder">Reminder Time</label>
+        <input type="time" id="ltReminderTime" class="lt-time-input">
+      </div>
+    </div>
+    <div>
+      <label class="lt-days-label"><i class="fas fa-calendar-week" style="margin-inline-end:5px;color:var(--neon-purple);font-size:10px;"></i><span data-key="ltDaysLabel">Specific Days (optional — leave blank for interval-based)</span></label>
+      <div class="lt-days-row" id="ltDaysRow">
+        <button type="button" class="lt-day-btn" data-day="Sat" onclick="ltToggleDay(this)" data-key-day="daySat">Sat</button>
+        <button type="button" class="lt-day-btn" data-day="Sun" onclick="ltToggleDay(this)" data-key-day="daySun">Sun</button>
+        <button type="button" class="lt-day-btn" data-day="Mon" onclick="ltToggleDay(this)" data-key-day="dayMon">Mon</button>
+        <button type="button" class="lt-day-btn" data-day="Tue" onclick="ltToggleDay(this)" data-key-day="dayTue">Tue</button>
+        <button type="button" class="lt-day-btn" data-day="Wed" onclick="ltToggleDay(this)" data-key-day="dayWed">Wed</button>
+        <button type="button" class="lt-day-btn" data-day="Thu" onclick="ltToggleDay(this)" data-key-day="dayThu">Thu</button>
+        <button type="button" class="lt-day-btn" data-day="Fri" onclick="ltToggleDay(this)" data-key-day="dayFri">Fri</button>
+      </div>
+      <div class="lt-days-hint" data-key="ltDaysHint">✦ Selecting days overrides the interval repeat schedule for this habit.</div>
+    </div>
+    <div class="lt-modal-actions">
+      <button class="lt-btn-cancel" onclick="ltCloseAddModal()" data-key="btnCancel">Cancel</button>
+      <button class="lt-btn-save" onclick="ltSaveNewHabit()"><i class="fas fa-check"></i> <span data-key="btnSaveHabit">Save</span></button>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE 1: Level-Up Overlay (appended to body) -->
+<div class="level-up-overlay" id="levelUpOverlay">
+  <div class="level-up-text" id="levelUpText">🚀 Level Up! Level 2</div>
+</div>
 <div class="modal-overlay" id="modal">
   <div class="modal">
     <div class="modal-icon" id="modalIcon">🎉</div>
@@ -739,7 +1175,7 @@ html[dir="ltr"] .toast { right:28px; }
   </div>
 </div>
 
-<!-- Reset Confirm Dialog -->
+<!-- Reward Modal -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
     <div class="confirm-icon">⚠️</div>
@@ -755,14 +1191,14 @@ html[dir="ltr"] .toast { right:28px; }
 <div class="toast" id="toast"><i class="fas fa-check-circle"></i><span id="toastMsg">Saved</span></div>
 
 <script>
-// =============================================================================
-// NEBULA — CRASH-RESISTANT CORE
-// Every major system block is wrapped in independent try/catch.
-// A failure in one block (e.g. Chart.js offline) NEVER freezes another.
-// =============================================================================
-
+// ===== _safeStorage: iOS private mode & strict privacy fallback =====
+var _memStore = {};
+var _safeStorage = {
+  getItem: function(k) { try { return localStorage.getItem(k); } catch(e) { return _memStore[k] !== undefined ? _memStore[k] : null; } },
+  setItem: function(k, v) { try { localStorage.setItem(k, v); } catch(e) { _memStore[k] = String(v); } },
+  removeItem: function(k) { try { localStorage.removeItem(k); } catch(e) { delete _memStore[k]; } }
+};
 // ===================== TRANSLATIONS =====================
-try {
 var i18n = {
   en: {
     pageTitle: 'Nebula — Digital Habit Tracker',
@@ -806,8 +1242,62 @@ var i18n = {
     notesSelectOrCreate: 'Select a note or create a new one to start writing.',
     notesTitlePlaceholder: 'Note title…', notesBodyPlaceholder: 'Start writing your thoughts…',
     notesReady: 'Ready', notesSaving: 'Saving…', notesSaved: 'Saved',
+        pomoTitle: 'Pomodoro Focus Timer',
     notesUntitled: 'Untitled Note',
-    chartOffline: 'Chart unavailable offline',
+    // --- Interval Habits modal keys ---
+    ltModalTitle: 'New Interval Habit',
+    ltLabelName: 'Habit Name', ltLabelEmoji: 'Emoji',
+    ltLabelRepeat: 'Repeat Every', ltLabelUnit: 'Unit',
+    ltLabelXP: 'XP Reward', ltLabelReminder: 'Reminder Time',
+    ltOptDays: 'Days', ltOptWeeks: 'Weeks', ltOptMonths: 'Months',
+    ltDaysLabel: 'Specific Days (optional — leave blank for interval-based)',
+    ltDaysHint: '✦ Selecting days overrides the interval repeat schedule for this habit.',
+    btnCancel: 'Cancel', btnSaveHabit: 'Save',
+    daySat: 'Sat', daySun: 'Sun', dayMon: 'Mon', dayTue: 'Tue', dayWed: 'Wed', dayThu: 'Thu', dayFri: 'Fri',
+    // --- Notes extra ---
+    navIntervalHabits: 'Interval Habits',
+    titleIntervalHabits: 'Interval & Long-Term Habits',
+    notifEnableTitle: 'Enable Reminders',
+    notifEnableDesc: 'get notified when interval habits are due & for evening habit nudges',
+    notifEnableBtn: 'Enable',
+    ltYourHabits: 'Your Interval Habits',
+    ltAddBtn: 'New Interval Habit',
+    ltEmptyTitle: 'No interval habits yet',
+    ltEmptyDesc: 'Create habits that repeat every few days, weeks, or months.',
+    ltNotStarted: 'Not started — tap to complete!',
+    ltDueToday: 'Due today!',
+    ltDaysOverdue: 'day(s) overdue',
+    ltDaysRemaining: 'day(s) remaining',
+    ltMarkComplete: 'Mark Complete — Collect XP!',
+    ltCompleteEarly: 'Complete Early',
+    ltXpBurst: '+{xp} XP on completion',
+    ltIntervalEveryDay: 'Every day',
+    ltIntervalEveryWeeks: 'Every {n} week(s)',
+    ltIntervalEveryMonths: 'Every {n} month(s)',
+    ltIntervalEveryDays: 'Every {n} days',
+    ltEvery: 'Every:',
+    msgLtAdded: 'Interval habit added ✓',
+    msgLtRemoved: 'Interval habit removed',
+    msgLtCompleted: '+{xp} XP — Great work! 🏆',
+    msgEnterLtName: 'Enter a habit name',
+    msgFocusComplete: '+100 XP — Focus session complete! 🍅',
+    msgBreakOver: 'Break over! Ready for session {n}?',
+    // --- Pomodoro ---
+    pomoWorkSession: 'Work Session', pomoBreakTime: 'Break Time',
+    pomoSessionLabel: 'Session {n} · {mode}',
+    pomoWorkMode: 'Work', pomoBreakMode: 'Break',
+    pomoXpHint: 'Complete a work session to earn',
+    // --- Rewards threshold window ---
+    rewardWindow30: '30-day sustained performance required',
+    rewardProgressLabel: '{pct}% / {threshold}% (30-day avg)',
+    // --- XP Level ---
+    xpLevelBadge: 'Lv{n}',
+    xpLevelTitle: 'Level {n} — {title}',
+    xpCountLabel: '{xp} / {next} XP',
+    levelUpText: '🚀 Level Up! Level {n}',
+    // --- Insights ---
+    insightsTitle: 'Nebula Recommendations',
+    insightAnalyzing: 'Analyzing your habits…',
   },
   ar: {
     pageTitle: 'نيبولا — متتبع العادات الرقمي',
@@ -851,8 +1341,62 @@ var i18n = {
     notesSelectOrCreate: 'اختر ملاحظة أو أنشئ واحدة جديدة للبدء.',
     notesTitlePlaceholder: 'عنوان الملاحظة…', notesBodyPlaceholder: 'ابدأ بكتابة أفكارك…',
     notesReady: 'جاهز', notesSaving: 'جارٍ الحفظ…', notesSaved: 'تم الحفظ',
+        pomoTitle: 'مؤقت بومودورو',
     notesUntitled: 'ملاحظة بلا عنوان',
-    chartOffline: 'الرسم البياني غير متاح بدون إنترنت',
+    // --- Interval Habits modal keys ---
+    ltModalTitle: 'عادة متكررة جديدة',
+    ltLabelName: 'اسم العادة', ltLabelEmoji: 'إيموجي',
+    ltLabelRepeat: 'تكرار كل', ltLabelUnit: 'الوحدة',
+    ltLabelXP: 'مكافأة XP', ltLabelReminder: 'وقت التذكير',
+    ltOptDays: 'أيام', ltOptWeeks: 'أسابيع', ltOptMonths: 'أشهر',
+    ltDaysLabel: 'أيام محددة (اختياري — اتركها فارغة للتكرار بالفترة)',
+    ltDaysHint: '✦ اختيار الأيام يلغي جدول التكرار لهذه العادة.',
+    btnCancel: 'إلغاء', btnSaveHabit: 'حفظ',
+    daySat: 'سبت', daySun: 'أحد', dayMon: 'اثن', dayTue: 'ثلا', dayWed: 'أرب', dayThu: 'خمي', dayFri: 'جمع',
+    // --- Notes extra ---
+    navIntervalHabits: 'العادات المتكررة',
+    titleIntervalHabits: 'العادات المتكررة وطويلة المدى',
+    notifEnableTitle: 'تفعيل التذكيرات',
+    notifEnableDesc: 'استلم إشعارات عند استحقاق العادات المتكررة',
+    notifEnableBtn: 'تفعيل',
+    ltYourHabits: 'عاداتك المتكررة',
+    ltAddBtn: 'عادة متكررة جديدة',
+    ltEmptyTitle: 'لا توجد عادات متكررة بعد',
+    ltEmptyDesc: 'أنشئ عادات تتكرر كل بضعة أيام أو أسابيع أو أشهر.',
+    ltNotStarted: 'لم تبدأ بعد — اضغط للإتمام!',
+    ltDueToday: 'مستحقة اليوم!',
+    ltDaysOverdue: 'يوم متأخر',
+    ltDaysRemaining: 'يوم متبقي',
+    ltMarkComplete: 'إتمام وجمع XP!',
+    ltCompleteEarly: 'إتمام مبكر',
+    ltXpBurst: '+{xp} XP عند الإتمام',
+    ltIntervalEveryDay: 'كل يوم',
+    ltIntervalEveryWeeks: 'كل {n} أسبوع/أسابيع',
+    ltIntervalEveryMonths: 'كل {n} شهر/أشهر',
+    ltIntervalEveryDays: 'كل {n} أيام',
+    ltEvery: 'كل:',
+    msgLtAdded: 'تمت إضافة العادة المتكررة ✓',
+    msgLtRemoved: 'تم حذف العادة المتكررة',
+    msgLtCompleted: '+{xp} XP — عمل رائع! 🏆',
+    msgEnterLtName: 'أدخل اسم العادة',
+    msgFocusComplete: '+100 XP — جلسة تركيز مكتملة! 🍅',
+    msgBreakOver: 'انتهت الاستراحة! جاهز للجلسة {n}؟',
+    // --- Pomodoro ---
+    pomoWorkSession: 'جلسة عمل', pomoBreakTime: 'وقت الاستراحة',
+    pomoSessionLabel: 'الجلسة {n} · {mode}',
+    pomoWorkMode: 'عمل', pomoBreakMode: 'استراحة',
+    pomoXpHint: 'أكمل جلسة عمل لكسب',
+    // --- Rewards ---
+    rewardWindow30: 'مطلوب أداء مستمر لمدة 30 يوماً',
+    rewardProgressLabel: '{pct}% / {threshold}% (متوسط 30 يوم)',
+    // --- XP ---
+    xpLevelBadge: 'مس{n}',
+    xpLevelTitle: 'المستوى {n} — {title}',
+    xpCountLabel: '{xp} / {next} XP',
+    levelUpText: '🚀 ارتقيت مستوى! المستوى {n}',
+    // --- Insights ---
+    insightsTitle: 'توصيات نيبولا',
+    insightAnalyzing: 'جارٍ تحليل عاداتك…',
   },
   fr: {
     pageTitle: 'Nebula — Traqueur d\'Habitudes',
@@ -896,80 +1440,131 @@ var i18n = {
     notesSelectOrCreate: 'Sélectionnez une note ou créez-en une nouvelle.',
     notesTitlePlaceholder: 'Titre de la note…', notesBodyPlaceholder: 'Commencez à écrire…',
     notesReady: 'Prêt', notesSaving: 'Sauvegarde…', notesSaved: 'Sauvegardé',
+        pomoTitle: 'Minuteur Pomodoro',
     notesUntitled: 'Note sans titre',
-    chartOffline: 'Graphique indisponible hors ligne',
+    // --- Interval Habits modal keys ---
+    ltModalTitle: 'Nouvelle Habitude Répétitive',
+    ltLabelName: 'Nom de l\'habitude', ltLabelEmoji: 'Emoji',
+    ltLabelRepeat: 'Répéter tous les', ltLabelUnit: 'Unité',
+    ltLabelXP: 'Récompense XP', ltLabelReminder: 'Heure de Rappel',
+    ltOptDays: 'Jours', ltOptWeeks: 'Semaines', ltOptMonths: 'Mois',
+    ltDaysLabel: 'Jours spécifiques (facultatif — laisser vide pour intervalle)',
+    ltDaysHint: '✦ Sélectionner des jours remplace le planning d\'intervalle.',
+    btnCancel: 'Annuler', btnSaveHabit: 'Enregistrer',
+    daySat: 'Sam', daySun: 'Dim', dayMon: 'Lun', dayTue: 'Mar', dayWed: 'Mer', dayThu: 'Jeu', dayFri: 'Ven',
+    // --- Notes extra ---
+    navIntervalHabits: 'Habitudes Répétitives',
+    titleIntervalHabits: 'Habitudes Répétitives & Long Terme',
+    notifEnableTitle: 'Activer les Rappels',
+    notifEnableDesc: 'recevoir des notifications pour les habitudes dues',
+    notifEnableBtn: 'Activer',
+    ltYourHabits: 'Vos Habitudes Répétitives',
+    ltAddBtn: 'Nouvelle Habitude Répétitive',
+    ltEmptyTitle: 'Pas encore d\'habitudes répétitives',
+    ltEmptyDesc: 'Créez des habitudes qui se répètent tous les jours, semaines ou mois.',
+    ltNotStarted: 'Pas commencé — tapez pour terminer !',
+    ltDueToday: 'Dû aujourd\'hui !',
+    ltDaysOverdue: 'jour(s) de retard',
+    ltDaysRemaining: 'jour(s) restant(s)',
+    ltMarkComplete: 'Marquer Terminé — Collecter XP !',
+    ltCompleteEarly: 'Terminer en Avance',
+    ltXpBurst: '+{xp} XP à la complétion',
+    ltIntervalEveryDay: 'Chaque jour',
+    ltIntervalEveryWeeks: 'Toutes les {n} semaine(s)',
+    ltIntervalEveryMonths: 'Tous les {n} mois',
+    ltIntervalEveryDays: 'Tous les {n} jours',
+    ltEvery: 'Chaque :',
+    msgLtAdded: 'Habitude répétitive ajoutée ✓',
+    msgLtRemoved: 'Habitude répétitive supprimée',
+    msgLtCompleted: '+{xp} XP — Excellent travail ! 🏆',
+    msgEnterLtName: 'Entrez un nom d\'habitude',
+    msgFocusComplete: '+100 XP — Session de concentration terminée ! 🍅',
+    msgBreakOver: 'Pause terminée ! Prêt pour la session {n} ?',
+    // --- Pomodoro ---
+    pomoWorkSession: 'Session de Travail', pomoBreakTime: 'Temps de Pause',
+    pomoSessionLabel: 'Session {n} · {mode}',
+    pomoWorkMode: 'Travail', pomoBreakMode: 'Pause',
+    pomoXpHint: 'Terminez une session pour gagner',
+    // --- Rewards ---
+    rewardWindow30: 'Performance soutenue de 30 jours requise',
+    rewardProgressLabel: '{pct}% / {threshold}% (moy. 30 jours)',
+    // --- XP ---
+    xpLevelBadge: 'Nv{n}',
+    xpLevelTitle: 'Niveau {n} — {title}',
+    xpCountLabel: '{xp} / {next} XP',
+    levelUpText: '🚀 Niveau Supérieur ! Niveau {n}',
+    // --- Insights ---
+    insightsTitle: 'Recommandations Nebula',
+    insightAnalyzing: 'Analyse de vos habitudes…',
   }
 };
-} catch(e) { console.error('[Nebula] i18n init failed:', e); }
 
-// ===================== LANGUAGE & TRANSLATIONS =====================
-try {
 var currentLang = 'ar';
 
 function t(key, replacements) {
-  try {
-    replacements = replacements || {};
-    var str = (i18n[currentLang] && i18n[currentLang][key]) || (i18n['en'] && i18n['en'][key]) || key;
-    var keys = Object.keys(replacements);
-    for (var i = 0; i < keys.length; i++) {
-      str = str.replace('{' + keys[i] + '}', replacements[keys[i]]);
-    }
-    return str;
-  } catch(e) { return key; }
+  replacements = replacements || {};
+  var str = (i18n[currentLang] && i18n[currentLang][key]) || i18n['en'][key] || key;
+  var keys = Object.keys(replacements);
+  for (var i = 0; i < keys.length; i++) {
+    str = str.replace('{' + keys[i] + '}', replacements[keys[i]]);
+  }
+  return str;
 }
 
 function changeLanguage(lang) {
-  try {
-    currentLang = lang;
-    var html = document.getElementById('htmlRoot');
-    if (html) { html.lang = lang; html.dir = (lang === 'ar') ? 'rtl' : 'ltr'; }
-    try { localStorage.setItem('nebula_lang', lang); } catch(e){}
-    applyTranslations();
-    renderAll();
-  } catch(e) { console.error('[Nebula] changeLanguage error:', e); }
+  currentLang = lang;
+  var html = document.getElementById('htmlRoot');
+  html.lang = lang;
+  html.dir = (lang === 'ar') ? 'rtl' : 'ltr';
+  _safeStorage.setItem('nebula_lang', lang);
+  applyTranslations();
+  renderAll();
 }
 
 function applyTranslations() {
-  try {
-    var els = document.querySelectorAll('[data-key]');
-    for (var i = 0; i < els.length; i++) {
-      try {
-        var key = els[i].getAttribute('data-key');
-        if (key && i18n[currentLang] && i18n[currentLang][key]) {
-          els[i].textContent = i18n[currentLang][key];
-        }
-      } catch(e2){}
+  var els = document.querySelectorAll('[data-key]');
+  for (var i = 0; i < els.length; i++) {
+    var key = els[i].getAttribute('data-key');
+    if (key && i18n[currentLang] && i18n[currentLang][key]) {
+      els[i].textContent = i18n[currentLang][key];
     }
-    var pt = document.getElementById('pageTitle');
-    if (pt) pt.textContent = t('pageTitle');
-    var nhn = document.getElementById('newHabitName');
-    if (nhn) nhn.placeholder = t('placeholderHabit');
-    var nhe = document.getElementById('newHabitEmoji');
-    if (nhe) nhe.placeholder = t('placeholderEmoji');
-    var rn = document.getElementById('rewardName');
-    if (rn) rn.placeholder = t('placeholderReward');
-    var rd = document.getElementById('rewardDesc');
-    if (rd) rd.placeholder = t('placeholderDesc');
-    var nti = document.getElementById('notesTitleInput');
-    var nbi = document.getElementById('notesBodyInput');
-    if (nti) nti.placeholder = t('notesTitlePlaceholder');
-    if (nbi) nbi.placeholder = t('notesBodyPlaceholder');
-    var ct = document.getElementById('confirmTitle');
-    var cb = document.getElementById('confirmBody');
-    var cok = document.getElementById('confirmOkBtn');
-    var ccan = document.getElementById('confirmCancelBtn');
-    if (ct) ct.textContent = t('confirmTitle');
-    if (cb) cb.textContent = t('confirmBody');
-    if (cok) cok.textContent = t('confirmOk');
-    if (ccan) ccan.textContent = t('confirmCancel');
-    updateGreeting();
-    updateDateChip();
-  } catch(e) { console.error('[Nebula] applyTranslations error:', e); }
+  }
+  document.getElementById('pageTitle').textContent = t('pageTitle');
+  document.getElementById('newHabitName').placeholder = t('placeholderHabit');
+  document.getElementById('newHabitEmoji').placeholder = t('placeholderEmoji');
+  document.getElementById('rewardName').placeholder = t('placeholderReward');
+  document.getElementById('rewardDesc').placeholder = t('placeholderDesc');
+  // Notes placeholders
+  var nti = document.getElementById('notesTitleInput');
+  var nbi = document.getElementById('notesBodyInput');
+  if(nti) nti.placeholder = t('notesTitlePlaceholder');
+  if(nbi) nbi.placeholder = t('notesBodyPlaceholder');
+  // Update confirm dialog texts
+  document.getElementById('confirmTitle').textContent = t('confirmTitle');
+  document.getElementById('confirmBody').textContent = t('confirmBody');
+  document.getElementById('confirmOkBtn').textContent = t('confirmOk');
+  document.getElementById('confirmCancelBtn').textContent = t('confirmCancel');
+  // Update day buttons in lt modal
+  var dayBtnsTranslate = document.querySelectorAll('#ltDaysRow .lt-day-btn[data-key-day]');
+  for (var dbi=0; dbi<dayBtnsTranslate.length; dbi++) {
+    var dkey = dayBtnsTranslate[dbi].getAttribute('data-key-day');
+    if(dkey && i18n[currentLang] && i18n[currentLang][dkey]) {
+      dayBtnsTranslate[dbi].textContent = i18n[currentLang][dkey];
+    }
+  }
+  // Update lt select options
+  var ltUnit = document.getElementById('ltIntervalUnit');
+  if(ltUnit) {
+    var unitOpts = ltUnit.querySelectorAll('option[data-key]');
+    for(var uoi=0; uoi<unitOpts.length; uoi++){
+      var ukey = unitOpts[uoi].getAttribute('data-key');
+      if(ukey && i18n[currentLang] && i18n[currentLang][ukey]) unitOpts[uoi].textContent = i18n[currentLang][ukey];
+    }
+  }
+  updateGreeting();
+  updateDateChip();
 }
-} catch(e) { console.error('[Nebula] Language module failed:', e); }
 
-// ===================== UTILITIES =====================
-try {
 function getCatKey(cat) {
   var map = {
     'الدين والصلاة': 'catReligion', 'Religion & Prayer': 'catReligion', 'Religion & Prière': 'catReligion',
@@ -985,39 +1580,6 @@ function translateCategory(cat) { return t(getCatKey(cat)); }
 var now = new Date();
 var todayKey = function() { return fmtDate(now); };
 
-function fmtDate(d){ try { var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; } catch(e){ return ''; } }
-function pad(n){ return String(n).padStart(2,'0'); }
-function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
-function getDayKey(y,m,d){ return y+'-'+pad(m+1)+'-'+pad(d); }
-function getLocale() { return currentLang==='ar'?'ar-SA':currentLang==='fr'?'fr-FR':'en-US'; }
-function escapeHtml(str){ return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-
-// String.prototype.padStart polyfill for older browsers / WebViews
-if (!String.prototype.padStart) {
-  String.prototype.padStart = function(targetLength, padString) {
-    padString = padString || ' ';
-    if (this.length >= targetLength) return String(this);
-    var padding = '';
-    while (padding.length < targetLength - this.length) { padding += padString; }
-    return padding + String(this);
-  };
-}
-
-var catColorMap = {
-  'catReligion': { color:'#a855f7', glow:'rgba(168,85,247,0.35)', bg:'rgba(168,85,247,0.12)' },
-  'catHealth': { color:'#34d399', glow:'rgba(52,211,153,0.35)', bg:'rgba(52,211,153,0.12)' },
-  'catProductivity': { color:'#38bdf8', glow:'rgba(56,189,248,0.35)', bg:'rgba(56,189,248,0.12)' },
-  'catWellness': { color:'#f472b6', glow:'rgba(244,114,182,0.35)', bg:'rgba(244,114,182,0.12)' },
-  'catFitness': { color:'#fbbf24', glow:'rgba(251,191,36,0.35)', bg:'rgba(251,191,36,0.12)' },
-};
-var catIconMap = { 'catReligion':'fa-pray', 'catHealth':'fa-heartbeat', 'catProductivity':'fa-bolt', 'catWellness':'fa-spa', 'catFitness':'fa-dumbbell' };
-
-function getCatStyle(catName) { return catColorMap[getCatKey(catName)] || catColorMap['catWellness']; }
-function getCatIcon(catName) { return catIconMap[getCatKey(catName)] || 'fa-star'; }
-} catch(e) { console.error('[Nebula] Utilities module failed:', e); }
-
-// ===================== DEFAULT DATA =====================
-try {
 function getDefaultHabits() {
   return [
     { id:'h1', name: t('habitPrayer'), emoji:'🙏', category: t('catReligion') },
@@ -1045,738 +1607,636 @@ var state = {
   habits: [], completions: {}, rewards: [],
   trackerMonth: new Date(now.getFullYear(), now.getMonth(), 1),
 };
-} catch(e) { console.error('[Nebula] Default data module failed:', e); }
 
-// ===================== STORAGE =====================
-try {
-function saveToStorage(){
-  try {
-    localStorage.setItem('nebula_habit_tracker_multi', JSON.stringify(state));
-    setUnsavedIndicator(false);
-  } catch(e){ console.warn('[Nebula] saveToStorage failed (likely in-memory fallback is active):', e); }
+var catColorMap = {
+  'catReligion': { color:'#a855f7', glow:'rgba(168,85,247,0.35)', bg:'rgba(168,85,247,0.12)' },
+  'catHealth': { color:'#34d399', glow:'rgba(52,211,153,0.35)', bg:'rgba(52,211,153,0.12)' },
+  'catProductivity': { color:'#38bdf8', glow:'rgba(56,189,248,0.35)', bg:'rgba(56,189,248,0.12)' },
+  'catWellness': { color:'#f472b6', glow:'rgba(244,114,182,0.35)', bg:'rgba(244,114,182,0.12)' },
+  'catFitness': { color:'#fbbf24', glow:'rgba(251,191,36,0.35)', bg:'rgba(251,191,36,0.12)' },
+};
+var catIconMap = { 'catReligion':'fa-pray', 'catHealth':'fa-heartbeat', 'catProductivity':'fa-bolt', 'catWellness':'fa-spa', 'catFitness':'fa-dumbbell' };
+
+function getCatStyle(catName) { return catColorMap[getCatKey(catName)] || catColorMap['catWellness']; }
+function getCatIcon(catName) { return catIconMap[getCatKey(catName)] || 'fa-star'; }
+function fmtDate(d){ var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; }
+function pad(n){ return String(n).padStart(2,'0'); }
+function daysInMonth(y,m){ return new Date(y,m+1,0).getDate(); }
+function getDayKey(y,m,d){ return y+'-'+pad(m+1)+'-'+pad(d); }
+function getLocale() { return currentLang==='ar'?'ar-SA':currentLang==='fr'?'fr-FR':'en-US'; }
+
+// String.prototype.padStart polyfill for older browsers
+if (!String.prototype.padStart) {
+  String.prototype.padStart = function(targetLength, padString) {
+    padString = padString || ' ';
+    if (this.length >= targetLength) return String(this);
+    var padding = '';
+    while (padding.length < targetLength - this.length) { padding += padString; }
+    return padding + String(this);
+  };
 }
 
-var _unsavedTimer = null;
-function markUnsaved(){
-  try {
-    setUnsavedIndicator(true);
-    clearTimeout(_unsavedTimer);
-    _unsavedTimer = setTimeout(saveToStorage, 800);
-  } catch(e){}
+function init(){
+  var savedLang;
+  savedLang = _safeStorage.getItem('nebula_lang');
+  if(savedLang && i18n[savedLang]) {
+    currentLang = savedLang;
+    document.getElementById('langSelect').value = savedLang;
+    var html = document.getElementById('htmlRoot');
+    html.lang = savedLang;
+    html.dir = (savedLang === 'ar') ? 'rtl' : 'ltr';
+  }
+  applyTranslations();
+  state.habits = getDefaultHabits();
+  state.rewards = getDefaultRewards();
+  loadFromStorage();
+  loadXP();
+  updateDateChip();
+  renderAll();
+  initNotes();
+  initQuotes();
+  renderXPBar();
+  renderNebulaInsights();
+  // Register Service Worker for PWA offline mode — called directly (DOM already ready)
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(function(reg) {
+      console.log('[SW] Registered, scope:', reg.scope);
+    }).catch(function(err) {
+      console.warn('[SW] Registration failed (non-critical):', err);
+    });
+  }
+  setInterval(function(){ updateGreeting(); updateDateChip(); }, 60000);
+  checkBackupReminder();
+  setInterval(checkBackupReminder, 3600000);
+  // ---- NEW FEATURE HOOKS (isolated, non-destructive) ----
+  ltInit();
+  nebulaNotifInit();
+  nebulaBadgeUpdate();
 }
 
-function setUnsavedIndicator(unsaved){
-  try {
-    var dot = document.getElementById('unsavedDot');
-    var btn = document.getElementById('saveBtn');
-    if(!dot || !btn) return;
-    if(unsaved){ dot.style.display='inline-block'; btn.title=t('msgUnsaved'); }
-    else { dot.style.display='none'; btn.title=t('msgAllSaved'); }
-  } catch(e){}
+function updateGreeting(){
+  var h = new Date().getHours();
+  var key = 'greetingMorning';
+  if(h>=12 && h<17) key='greetingAfternoon';
+  else if(h>=17) key='greetingEvening';
+  document.getElementById('greetingText').textContent = t(key);
 }
-
-function loadFromStorage(){
+function updateDateChip(){
+  var opts = {weekday:'long', year:'numeric', month:'long', day:'numeric'};
   try {
-    var raw = localStorage.getItem('nebula_habit_tracker_multi');
-    if(raw){
-      var parsed = JSON.parse(raw);
-      if(parsed && parsed.habits && parsed.habits.length) state.habits = parsed.habits;
-      if(parsed && parsed.rewards && parsed.rewards.length) state.rewards = parsed.rewards;
-      if(parsed && parsed.completions) state.completions = parsed.completions;
-    }
-  } catch(e){ console.warn('[Nebula] loadFromStorage failed, using defaults:', e); }
-}
-} catch(e) { console.error('[Nebula] Storage module failed:', e); }
-
-// ===================== SAFE CHART HELPER =====================
-// Centralises Chart.js guard. If Chart.js failed to load (offline),
-// shows a graceful offline message instead of crashing.
-try {
-function safeChart(canvasId, config) {
-  try {
-    if (typeof Chart === 'undefined') {
-      var container = document.getElementById(canvasId);
-      if (container && container.parentNode) {
-        container.parentNode.innerHTML =
-          '<div class="chart-offline-msg"><i class="fas fa-wifi-slash"></i><span>'+t('chartOffline')+'</span></div>';
-      }
-      return null;
-    }
-    var canvas = document.getElementById(canvasId);
-    if (!canvas) return null;
-    var ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-    return new Chart(ctx, config);
+    document.getElementById('currentDateChip').textContent = now.toLocaleDateString(getLocale(), opts);
   } catch(e) {
-    console.warn('[Nebula] Chart render failed for', canvasId, e);
-    try {
-      var container2 = document.getElementById(canvasId);
-      if (container2 && container2.parentNode) {
-        container2.parentNode.innerHTML =
-          '<div class="chart-offline-msg"><i class="fas fa-exclamation-triangle"></i><span>'+t('chartOffline')+'</span></div>';
-      }
-    } catch(e2){}
-    return null;
+    document.getElementById('currentDateChip').textContent = now.toLocaleDateString('en-US', opts);
   }
 }
 
-// Safe confetti — silently no-ops if library absent or canvas unavailable
-function safeConfetti(opts) {
-  try {
-    if (typeof confetti === 'function') { confetti(opts); }
-  } catch(e){ console.warn('[Nebula] confetti failed:', e); }
-}
-} catch(e) { console.error('[Nebula] Chart helper module failed:', e); }
-
-// ===================== NAVIGATION =====================
-try {
+// FIX: navigate now takes the element as parameter — works on all browsers
 function navigate(el, id){
-  try {
-    var navItems = document.querySelectorAll('.nav-item');
-    for(var i=0; i<navItems.length; i++) navItems[i].classList.remove('active');
-    el.classList.add('active');
-    var sections = document.querySelectorAll('.section');
-    for(var i=0; i<sections.length; i++) sections[i].classList.remove('active');
-    var sec = document.getElementById(id);
-    if (sec) sec.classList.add('active');
-    renderAll();
-  } catch(e) { console.error('[Nebula] navigate error:', e); }
+  var navItems = document.querySelectorAll('.nav-item');
+  for(var ni=0; ni<navItems.length; ni++) navItems[ni].classList.remove('active');
+  el.classList.add('active');
+  var sections = document.querySelectorAll('.section');
+  for(var si=0; si<sections.length; si++) sections[si].classList.remove('active');
+  var targetSection = document.getElementById(id);
+  if(targetSection) targetSection.classList.add('active');
+  renderAll();
 }
+function toggleSidebar(){ document.getElementById('sidebar').classList.toggle('expanded'); }
 
-function toggleSidebar(){
-  try { document.getElementById('sidebar').classList.toggle('expanded'); } catch(e){}
-}
-} catch(e) { console.error('[Nebula] Navigation module failed:', e); }
-
-// ===================== GREETING & DATE =====================
-try {
-function updateGreeting(){
-  try {
-    var h = new Date().getHours();
-    var key = 'greetingMorning';
-    if(h>=12 && h<17) key='greetingAfternoon';
-    else if(h>=17) key='greetingEvening';
-    var el = document.getElementById('greetingText');
-    if (el) el.textContent = t(key);
-  } catch(e){ console.error('[Nebula] updateGreeting error:', e); }
-}
-
-function updateDateChip(){
-  try {
-    var el = document.getElementById('currentDateChip');
-    if (!el) return;
-    var d = new Date();
-    var opts = {weekday:'long', year:'numeric', month:'long', day:'numeric'};
-    try { el.textContent = d.toLocaleDateString(getLocale(), opts); }
-    catch(e){ try { el.textContent = d.toLocaleDateString('en-US', opts); } catch(e2){} }
-  } catch(e){ console.error('[Nebula] updateDateChip error:', e); }
-}
-} catch(e) { console.error('[Nebula] Greeting module failed:', e); }
-
-// ===================== RENDER ALL =====================
-try {
 function renderAll(){
-  try { populateCategorySelects(); } catch(e){ console.error('[Nebula] populateCategorySelects:', e); }
-  try { renderDashboard(); } catch(e){ console.error('[Nebula] renderDashboard:', e); }
-  try { renderTracker(); } catch(e){ console.error('[Nebula] renderTracker:', e); }
-  try { renderSetup(); } catch(e){ console.error('[Nebula] renderSetup:', e); }
-  try { renderRewards(); } catch(e){ console.error('[Nebula] renderRewards:', e); }
-  try { renderAnalytics(); } catch(e){ console.error('[Nebula] renderAnalytics:', e); }
+  populateCategorySelects();
+  renderDashboard();
+  renderTracker();
+  renderSetup();
+  renderRewards();
+  renderAnalytics();
 }
 
 function populateCategorySelects(){
-  try {
-    var opts = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-    var sel1 = document.getElementById('newHabitCat');
-    var sel2 = document.getElementById('rewardCat');
-    if (!sel1 || !sel2) return;
-    var old1 = sel1.value; var old2 = sel2.value;
-    sel1.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
-    sel2.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
-    if(old1 && opts.indexOf(old1)!==-1) sel1.value = old1;
-    if(old2 && opts.indexOf(old2)!==-1) sel2.value = old2;
-  } catch(e){ console.error('[Nebula] populateCategorySelects:', e); }
+  var opts = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+  var sel1 = document.getElementById('newHabitCat');
+  var sel2 = document.getElementById('rewardCat');
+  var old1 = sel1.value; var old2 = sel2.value;
+  sel1.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+  sel2.innerHTML = opts.map(function(c){ return '<option value="'+c+'">'+c+'</option>'; }).join('');
+  if(old1 && opts.indexOf(old1)!==-1) sel1.value = old1;
+  if(old2 && opts.indexOf(old2)!==-1) sel2.value = old2;
 }
-} catch(e) { console.error('[Nebula] renderAll module failed:', e); }
 
-// ===================== DASHBOARD =====================
-try {
 var dashRingChart, weeklyChartInst, categoryChartInst;
 
 function renderDashboard(){
-  try {
-    var stats = computeStats();
-    var overallPct=stats.overallPct, totalChecks=stats.totalChecks, currentStreak=stats.currentStreak;
-    var bestStreak=stats.bestStreak, todayDone=stats.todayDone, todayTotal=stats.todayTotal, todayPct=stats.todayPct;
+  var stats = computeStats();
+  var overallPct=stats.overallPct, totalChecks=stats.totalChecks, currentStreak=stats.currentStreak;
+  var bestStreak=stats.bestStreak, todayDone=stats.todayDone, todayTotal=stats.todayTotal, todayPct=stats.todayPct;
+  var dashRingEl = document.getElementById('dashRing');
+  if(!dashRingEl || typeof Chart === 'undefined') return;
+  var ringCtx = dashRingEl.getContext('2d');
+  if(dashRingChart) { try { dashRingChart.destroy(); } catch(e){} }
+  dashRingChart = new Chart(ringCtx,{
+    type:'doughnut',
+    data:{ labels:[t('lblCompleted'), t('lblIncomplete')], datasets:[{ data:[overallPct, Math.max(0,100-overallPct)], backgroundColor:['#a855f7','rgba(255,255,255,0.04)'], borderWidth:0, hoverOffset:0 }] },
+    options:{ cutout:'78%', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{ animateScale:true, animateRotate:true } }
+  });
+  document.getElementById('dashPct').textContent = Math.round(overallPct)+'%';
+  document.getElementById('dashStreak').textContent = currentStreak;
+  document.getElementById('dashBestStreak').textContent = bestStreak;
+  document.getElementById('dashTotal').textContent = totalChecks;
+  document.getElementById('dashToday').textContent = todayDone+'/'+todayTotal;
+  document.getElementById('dashTodayPct').textContent = Math.round(todayPct);
 
-    // Ring chart
-    try {
-      if(dashRingChart) { try { dashRingChart.destroy(); } catch(e){} }
-      dashRingChart = safeChart('dashRing', {
-        type:'doughnut',
-        data:{ labels:[t('lblCompleted'), t('lblIncomplete')], datasets:[{ data:[overallPct, Math.max(0,100-overallPct)], backgroundColor:['#a855f7','rgba(255,255,255,0.04)'], borderWidth:0, hoverOffset:0 }] },
-        options:{ cutout:'78%', responsive:true, maintainAspectRatio:false, plugins:{ legend:{display:false}, tooltip:{enabled:false} }, animation:{ animateScale:true, animateRotate:true } }
-      });
-    } catch(e){ console.warn('[Nebula] dashRing chart failed:', e); }
+  var weeklyData = getWeeklyData();
+  var weeklyEl = document.getElementById('weeklyChart');
+  if(!weeklyEl) return;
+  var wCtx = weeklyEl.getContext('2d');
+  if(weeklyChartInst) { try { weeklyChartInst.destroy(); } catch(e){} }
+  weeklyChartInst = new Chart(wCtx,{
+    type:'bar',
+    data:{ labels: weeklyData.labels, datasets:[{ label: t('chartCompletionPct'), data: weeklyData.data, backgroundColor: weeklyData.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:8, barThickness:22 }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+  });
 
-    // Stat values
-    try {
-      var dp = document.getElementById('dashPct'); if(dp) dp.textContent = Math.round(overallPct)+'%';
-      var ds = document.getElementById('dashStreak'); if(ds) ds.textContent = currentStreak;
-      var dbs = document.getElementById('dashBestStreak'); if(dbs) dbs.textContent = bestStreak;
-      var dt = document.getElementById('dashTotal'); if(dt) dt.textContent = totalChecks;
-      var dday = document.getElementById('dashToday'); if(dday) dday.textContent = todayDone+'/'+todayTotal;
-      var ddpct = document.getElementById('dashTodayPct'); if(ddpct) ddpct.textContent = Math.round(todayPct);
-    } catch(e){ console.warn('[Nebula] Dashboard stat DOM update failed:', e); }
-
-    // Weekly bar chart
-    try {
-      var weeklyData = getWeeklyData();
-      if(weeklyChartInst) { try { weeklyChartInst.destroy(); } catch(e){} }
-      weeklyChartInst = safeChart('weeklyChart', {
-        type:'bar',
-        data:{ labels: weeklyData.labels, datasets:[{ label: t('chartCompletionPct'), data: weeklyData.data, backgroundColor: weeklyData.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:8, barThickness:22 }] },
-        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-      });
-    } catch(e){ console.warn('[Nebula] weeklyChart failed:', e); }
-
-    // Category doughnut chart
-    try {
-      var catData = getCategoryBreakdown();
-      if(categoryChartInst) { try { categoryChartInst.destroy(); } catch(e){} }
-      categoryChartInst = safeChart('categoryChart', {
-        type:'doughnut',
-        data:{ labels: catData.labels.map(translateCategory), datasets:[{ data: catData.data, backgroundColor: catData.colors, borderWidth:0, hoverOffset:8 }] },
-        options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{ position: currentLang==='ar'?'left':'right', labels:{color:'#94a3b8',font:{size:11},padding:16} }, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-      });
-    } catch(e){ console.warn('[Nebula] categoryChart failed:', e); }
-
-  } catch(e){ console.error('[Nebula] renderDashboard error:', e); }
+  var catData = getCategoryBreakdown();
+  var catChartEl = document.getElementById('categoryChart');
+  if(!catChartEl) return;
+  var cCtx = catChartEl.getContext('2d');
+  if(categoryChartInst) { try { categoryChartInst.destroy(); } catch(e){} }
+  categoryChartInst = new Chart(cCtx,{
+    type:'doughnut',
+    data:{ labels: catData.labels.map(translateCategory), datasets:[{ data: catData.data, backgroundColor: catData.colors, borderWidth:0, hoverOffset:8 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'55%', plugins:{ legend:{ position: currentLang==='ar'?'left':'right', labels:{color:'#94a3b8',font:{size:11},padding:16} }, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+  });
 }
 
 function computeStats(){
-  try {
-    var keys = Object.keys(state.completions);
-    var totalChecks=0, totalSlots=0, currentStreak=0, bestStreak=0, tempStreak=0;
-    var todayDone=0, todayTotal=state.habits.length;
-    var tKey = todayKey();
-    if(state.completions[tKey]){
-      for(var i=0;i<state.habits.length;i++){ if(state.completions[tKey][state.habits[i].id]) todayDone++; }
-    }
-    var sorted = keys.slice().sort();
-    var prevDate = null;
-    for(var ki=0; ki<sorted.length; ki++){
-      var k = sorted[ki];
-      var dayDone = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
-      totalChecks += dayDone; totalSlots += state.habits.length;
-      var d = new Date(k);
-      if(prevDate){
-        var diff = (d - prevDate)/(1000*60*60*24);
-        if(diff===1 && dayDone===state.habits.length) tempStreak++;
-        else if(dayDone===state.habits.length) tempStreak=1;
-        else tempStreak=0;
-      } else { if(dayDone===state.habits.length) tempStreak=1; }
-      bestStreak = Math.max(bestStreak, tempStreak); prevDate = d;
-    }
-    var check = new Date(); currentStreak=0;
-    while(true){
-      var ck = fmtDate(check);
-      var done = state.habits.filter(function(h){ return state.completions[ck]&&state.completions[ck][h.id]; }).length;
-      if(done===state.habits.length && state.habits.length>0){ currentStreak++; check.setDate(check.getDate()-1); } else break;
-    }
-    var overallPct = totalSlots ? (totalChecks/totalSlots)*100 : 0;
-    var todayPct = todayTotal ? (todayDone/todayTotal)*100 : 0;
-    return { overallPct:overallPct, totalChecks:totalChecks, currentStreak:currentStreak, bestStreak:bestStreak, todayDone:todayDone, todayTotal:todayTotal, todayPct:todayPct };
-  } catch(e){ console.error('[Nebula] computeStats error:', e); return { overallPct:0, totalChecks:0, currentStreak:0, bestStreak:0, todayDone:0, todayTotal:0, todayPct:0 }; }
+  var keys = Object.keys(state.completions);
+  var totalChecks=0, totalSlots=0, currentStreak=0, bestStreak=0, tempStreak=0;
+  var todayDone=0, todayTotal=state.habits.length;
+  var tKey = todayKey();
+  if(state.completions[tKey]){
+    for(var i=0;i<state.habits.length;i++){ if(state.completions[tKey][state.habits[i].id]) todayDone++; }
+  }
+  var sorted = keys.slice().sort();
+  var prevDate = null;
+  for(var ki=0; ki<sorted.length; ki++){
+    var k = sorted[ki];
+    var dayDone = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
+    totalChecks += dayDone; totalSlots += state.habits.length;
+    var d = new Date(k);
+    if(prevDate){
+      var diff = (d - prevDate)/(1000*60*60*24);
+      if(diff===1 && dayDone===state.habits.length) tempStreak++;
+      else if(dayDone===state.habits.length) tempStreak=1;
+      else tempStreak=0;
+    } else { if(dayDone===state.habits.length) tempStreak=1; }
+    bestStreak = Math.max(bestStreak, tempStreak); prevDate = d;
+  }
+  var check = new Date(); currentStreak=0;
+  while(true){
+    var ck = fmtDate(check);
+    var done = state.habits.filter(function(h){ return state.completions[ck]&&state.completions[ck][h.id]; }).length;
+    if(done===state.habits.length && state.habits.length>0){ currentStreak++; check.setDate(check.getDate()-1); } else break;
+  }
+  var overallPct = totalSlots ? (totalChecks/totalSlots)*100 : 0;
+  var todayPct = todayTotal ? (todayDone/todayTotal)*100 : 0;
+  return { overallPct:overallPct, totalChecks:totalChecks, currentStreak:currentStreak, bestStreak:bestStreak, todayDone:todayDone, todayTotal:todayTotal, todayPct:todayPct };
 }
 
 function getWeeklyData(){
-  try {
-    var labels=[], data=[];
-    var d = new Date(); d.setDate(d.getDate()-6);
-    for(var i=0;i<7;i++){
-      var k=fmtDate(d);
-      try { labels.push(d.toLocaleDateString(getLocale(),{weekday:'short'})); }
-      catch(e){ labels.push(d.toLocaleDateString('en-US',{weekday:'short'})); }
-      var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
-      data.push(state.habits.length ? Math.round((done/state.habits.length)*100) : 0);
-      d.setDate(d.getDate()+1);
-    }
-    return { labels:labels, data:data };
-  } catch(e){ return { labels:[], data:[] }; }
+  var labels=[], data=[];
+  var d = new Date(); d.setDate(d.getDate()-6);
+  for(var i=0;i<7;i++){
+    var k=fmtDate(d);
+    try { labels.push(d.toLocaleDateString(getLocale(),{weekday:'short'})); }
+    catch(e){ labels.push(d.toLocaleDateString('en-US',{weekday:'short'})); }
+    var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
+    data.push(state.habits.length ? Math.round((done/state.habits.length)*100) : 0);
+    d.setDate(d.getDate()+1);
+  }
+  return { labels:labels, data:data };
 }
 
 function getCategoryBreakdown(){
-  try {
-    var catMap={}; var total=0;
-    state.habits.forEach(function(h){ var cat=h.category; if(!catMap[cat]) catMap[cat]={done:0,total:0}; catMap[cat].total++; });
-    Object.keys(state.completions).forEach(function(k){ state.habits.forEach(function(h){ if(state.completions[k][h.id]){ catMap[h.category].done++; total++; } }); });
-    var labels=[], data=[], colors=[];
-    Object.keys(catMap).forEach(function(cat){ labels.push(cat); data.push(catMap[cat].done); colors.push(getCatStyle(cat).color); });
-    return { labels:labels, data:data, colors:colors };
-  } catch(e){ return { labels:[], data:[], colors:[] }; }
+  var catMap={}; var total=0;
+  state.habits.forEach(function(h){ var cat=h.category; if(!catMap[cat]) catMap[cat]={done:0,total:0}; catMap[cat].total++; });
+  Object.keys(state.completions).forEach(function(k){ state.habits.forEach(function(h){ if(state.completions[k][h.id]){ catMap[h.category].done++; total++; } }); });
+  var labels=[], data=[], colors=[];
+  Object.keys(catMap).forEach(function(cat){ labels.push(cat); data.push(catMap[cat].done); colors.push(getCatStyle(cat).color); });
+  return { labels:labels, data:data, colors:colors };
 }
-} catch(e) { console.error('[Nebula] Dashboard module failed:', e); }
 
-// ===================== TRACKER =====================
-try {
-function changeTrackerMonth(dir){
-  try { state.trackerMonth.setMonth(state.trackerMonth.getMonth()+dir); renderTracker(); } catch(e){ console.error('[Nebula] changeTrackerMonth:', e); }
-}
-function resetTrackerMonth(){
-  try { state.trackerMonth=new Date(now.getFullYear(),now.getMonth(),1); renderTracker(); } catch(e){}
-}
+function changeTrackerMonth(dir){ state.trackerMonth.setMonth(state.trackerMonth.getMonth()+dir); renderTracker(); }
+function resetTrackerMonth(){ state.trackerMonth=new Date(now.getFullYear(),now.getMonth(),1); renderTracker(); }
 
 function renderTracker(){
-  try {
-    var grid = document.getElementById('heatmapGrid');
-    if (!grid) return;
-    var y = state.trackerMonth.getFullYear(), m = state.trackerMonth.getMonth(), dim = daysInMonth(y,m);
-    var lbl = document.getElementById('trackerMonthLabel');
-    if (lbl) {
-      try { lbl.textContent = state.trackerMonth.toLocaleDateString(getLocale(),{month:'long',year:'numeric'}); }
-      catch(e){ try { lbl.textContent = state.trackerMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'}); } catch(e2){} }
-    }
-    var prevBtn = document.getElementById('btnPrevMonth');
-    var nextBtn = document.getElementById('btnNextMonth');
-    if(prevBtn && nextBtn) {
-      if(currentLang === 'ar') { prevBtn.className = 'fas fa-chevron-right'; nextBtn.className = 'fas fa-chevron-left'; }
-      else { prevBtn.className = 'fas fa-chevron-left'; nextBtn.className = 'fas fa-chevron-right'; }
-    }
-    grid.style.setProperty('grid-template-columns', '160px repeat('+dim+', 32px)', 'important');
-    grid.style.setProperty('width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
-    grid.style.setProperty('min-width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
-    grid.innerHTML = '';
-    grid.appendChild(cell(t('titleSetup').split(' ')[0]+' / '+t('btnToday'),'habit-label'));
+  var grid = document.getElementById('heatmapGrid');
+  var y = state.trackerMonth.getFullYear(), m = state.trackerMonth.getMonth(), dim = daysInMonth(y,m);
+  try { document.getElementById('trackerMonthLabel').textContent = state.trackerMonth.toLocaleDateString(getLocale(),{month:'long',year:'numeric'}); }
+  catch(e){ document.getElementById('trackerMonthLabel').textContent = state.trackerMonth.toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
+  var prevBtn = document.getElementById('btnPrevMonth');
+  var nextBtn = document.getElementById('btnNextMonth');
+  if(currentLang === 'ar') { prevBtn.className = 'fas fa-chevron-right'; nextBtn.className = 'fas fa-chevron-left'; }
+  else { prevBtn.className = 'fas fa-chevron-left'; nextBtn.className = 'fas fa-chevron-right'; }
+  grid.style.setProperty('grid-template-columns', '160px repeat('+dim+', 32px)', 'important');
+  grid.style.setProperty('width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
+  grid.style.setProperty('min-width', 'calc(160px + '+dim+' * 32px + '+(dim-1)+' * 3px)', 'important');
+  grid.innerHTML = '';
+  grid.appendChild(cell(t('titleSetup').split(' ')[0]+' / '+t('btnToday'),'habit-label'));
+  for(var d=1; d<=dim; d++){
+    var isToday = (d===now.getDate() && m===now.getMonth() && y===now.getFullYear());
+    var c = cell(d, 'day-num');
+    if(isToday){ c.style.color='var(--neon-purple)'; c.style.fontWeight='800'; }
+    grid.appendChild(c);
+  }
+  state.habits.forEach(function(h){
+    var lbl = document.createElement('div'); lbl.className='heatmap-cell habit-label';
+    lbl.innerHTML = '<span class="habit-emoji">'+h.emoji+'</span><span>'+escapeHtml(h.name)+'</span>';
+    grid.appendChild(lbl);
     for(var d=1; d<=dim; d++){
-      var isToday = (d===now.getDate() && m===now.getMonth() && y===now.getFullYear());
-      var c = cell(d, 'day-num');
-      if(isToday){ c.style.color='var(--neon-purple)'; c.style.fontWeight='800'; }
+      var dk = getDayKey(y,m,d);
+      var checked = !!(state.completions[dk] && state.completions[dk][h.id]);
+      var c = cell('', checked?'checked':'');
+      c.dataset.date = dk; c.dataset.hid = h.id;
+      (function(dk, hid, c){
+        c.onclick = function(){ toggleHabitDay(dk, hid, c); };
+      })(dk, h.id, c);
       grid.appendChild(c);
     }
-    state.habits.forEach(function(h){
-      try {
-        var lbl2 = document.createElement('div'); lbl2.className='heatmap-cell habit-label';
-        lbl2.innerHTML = '<span class="habit-emoji">'+h.emoji+'</span><span>'+escapeHtml(h.name)+'</span>';
-        grid.appendChild(lbl2);
-        for(var d2=1; d2<=dim; d2++){
-          var dk = getDayKey(y,m,d2);
-          var checked = !!(state.completions[dk] && state.completions[dk][h.id]);
-          var c2 = cell('', checked?'checked':'');
-          c2.dataset.date = dk; c2.dataset.hid = h.id;
-          (function(dk, hid, c2){
-            c2.onclick = function(){ toggleHabitDay(dk, hid, c2); };
-          })(dk, h.id, c2);
-          grid.appendChild(c2);
-        }
-      } catch(e2){ console.warn('[Nebula] renderTracker row error:', e2); }
-    });
-  } catch(e){ console.error('[Nebula] renderTracker error:', e); }
+  });
 }
 
 function cell(text, cls){ var d=document.createElement('div'); d.className='heatmap-cell'+(cls?' '+cls:''); d.textContent=text; return d; }
 
-function toggleHabitDay(dateKey, hid, el){
-  try {
-    if(!state.completions[dateKey]) state.completions[dateKey]={};
-    var was = !!state.completions[dateKey][hid];
-    if(was) delete state.completions[dateKey][hid]; else state.completions[dateKey][hid]=true;
-    markUnsaved();
-    if(!was){
-      el.classList.add('checked','heatmap-check-anim');
-      setTimeout(function(){ try { el.classList.remove('heatmap-check-anim'); } catch(e){} }, 500);
-      try {
-        var rect = el.getBoundingClientRect();
-        var habit = null;
-        for(var i=0;i<state.habits.length;i++){ if(state.habits[i].id===hid){ habit=state.habits[i]; break; } }
-        var col = getCatStyle(habit?habit.category:'').color || '#34d399';
-        safeConfetti({ particleCount:18, spread:50, origin:{ x:(rect.left+rect.width/2)/window.innerWidth, y:(rect.top+rect.height/2)/window.innerHeight }, colors:[col] });
-      } catch(e){}
-    } else { el.classList.remove('checked'); }
-    saveToStorage(); renderAll(); checkRewards();
-  } catch(e){ console.error('[Nebula] toggleHabitDay error:', e); }
+function escapeHtml(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
-} catch(e) { console.error('[Nebula] Tracker module failed:', e); }
 
-// ===================== SETUP =====================
-try {
+function toggleHabitDay(dateKey, hid, el){
+  if(!state.completions[dateKey]) state.completions[dateKey]={};
+  var was = !!state.completions[dateKey][hid];
+  if(was) delete state.completions[dateKey][hid]; else state.completions[dateKey][hid]=true;
+  markUnsaved();
+  if(!was){
+    el.classList.add('checked','heatmap-check-anim');
+    setTimeout(function(){ el.classList.remove('heatmap-check-anim'); }, 500);
+    var rect = el.getBoundingClientRect();
+    var habit = null;
+    for(var i=0;i<state.habits.length;i++){ if(state.habits[i].id===hid){ habit=state.habits[i]; break; } }
+    var col = getCatStyle(habit?habit.category:'').color || '#34d399';
+    if(typeof confetti === 'function') confetti({ particleCount:18, spread:50, origin:{ x:(rect.left+rect.width/2)/window.innerWidth, y:(rect.top+rect.height/2)/window.innerHeight }, colors:[col] });
+  } else { el.classList.remove('checked'); }
+  saveToStorage(); renderAll(); checkRewards();
+}
+
 function renderSetup(){
-  try {
-    var list = document.getElementById('setupList');
-    if (!list) return;
-    list.innerHTML = '';
-    state.habits.forEach(function(h){
-      try {
-        var row = document.createElement('div'); row.className='setup-item';
-        var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-        var catStyle = getCatStyle(h.category);
-        row.innerHTML =
-          '<div class="emoji-btn" contenteditable="true" data-hid="'+h.id+'">'+h.emoji+'</div>'+
-          '<input value="'+escapeHtml(h.name)+'" data-hid="'+h.id+'" class="habit-name-input" placeholder="'+t('placeholderHabit')+'">'+
-          '<select data-hid="'+h.id+'" class="habit-cat-select">'+cats.map(function(c){ return '<option value="'+c+'"'+(c===h.category?' selected':'')+'>'+c+'</option>'; }).join('')+'</select>'+
-          '<div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:'+catStyle.color+';display:inline-block;box-shadow:0 0 8px '+catStyle.glow+';"></span>'+escapeHtml(h.category)+'</div>'+
-          '<button class="del-btn" data-hid="'+h.id+'"><i class="fas fa-trash-alt"></i></button>';
-        row.querySelector('.emoji-btn').addEventListener('blur', function(){ updateEmoji(this.getAttribute('data-hid'), this); });
-        row.querySelector('.habit-name-input').addEventListener('change', function(){ updateHabitName(this.getAttribute('data-hid'), this.value); });
-        row.querySelector('.habit-cat-select').addEventListener('change', function(){ updateHabitCat(this.getAttribute('data-hid'), this.value); });
-        row.querySelector('.del-btn').addEventListener('click', function(){ deleteHabit(this.getAttribute('data-hid')); });
-        list.appendChild(row);
-      } catch(e2){ console.warn('[Nebula] renderSetup row error:', e2); }
-    });
-    var hc = document.getElementById('habitCount');
-    if (hc) hc.textContent = t('habitCount', {n: state.habits.length});
-    var cg = document.getElementById('catGrid');
-    if (cg) {
-      cg.innerHTML = '';
-      [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')].forEach(function(cat){
-        try {
-          var habitsInCat = state.habits.filter(function(h){ return h.category===cat; });
-          var style = getCatStyle(cat);
-          var card = document.createElement('div'); card.className='card'; card.style.borderTop = '3px solid '+style.color;
-          var habitsHtml = habitsInCat.map(function(h){ return '<span style="background:var(--bg-deep);border:1px solid var(--border);padding:4px 10px;border-radius:8px;font-size:12px;">'+h.emoji+' '+escapeHtml(h.name)+'</span>'; }).join('');
-          if(!habitsInCat.length) habitsHtml = '<span style="font-size:12px;color:var(--text-muted);">'+t('noHabitsYet')+'</span>';
-          card.innerHTML =
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
-              '<div style="width:36px;height:36px;border-radius:10px;background:'+style.bg+';display:flex;align-items:center;justify-content:center;color:'+style.color+';box-shadow:0 0 12px '+style.glow+';"><i class="fas '+getCatIcon(cat)+'"></i></div>'+
-              '<div><div style="font-weight:700;font-size:14px;">'+cat+'</div><div style="font-size:12px;color:var(--text-muted);">'+habitsInCat.length+'</div></div>'+
-            '</div>'+
-            '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+habitsHtml+'</div>';
-          cg.appendChild(card);
-        } catch(e2){}
-      });
-    }
-  } catch(e){ console.error('[Nebula] renderSetup error:', e); }
+  var list = document.getElementById('setupList'); list.innerHTML = '';
+  state.habits.forEach(function(h){
+    var row = document.createElement('div'); row.className='setup-item';
+    var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+    var catStyle = getCatStyle(h.category);
+    row.innerHTML =
+      '<div class="emoji-btn" contenteditable="true" data-hid="'+h.id+'">'+h.emoji+'</div>'+
+      '<input value="'+escapeHtml(h.name)+'" data-hid="'+h.id+'" class="habit-name-input" placeholder="'+t('placeholderHabit')+'">'+
+      '<select data-hid="'+h.id+'" class="habit-cat-select">'+cats.map(function(c){ return '<option value="'+c+'"'+(c===h.category?' selected':'')+'>'+c+'</option>'; }).join('')+'</select>'+
+      '<div style="font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:6px;"><span style="width:10px;height:10px;border-radius:50%;background:'+catStyle.color+';display:inline-block;box-shadow:0 0 8px '+catStyle.glow+';"></span>'+escapeHtml(h.category)+'</div>'+
+      '<button class="del-btn" data-hid="'+h.id+'"><i class="fas fa-trash-alt"></i></button>';
+    // events
+    row.querySelector('.emoji-btn').addEventListener('blur', function(){ updateEmoji(this.getAttribute('data-hid'), this); });
+    row.querySelector('.habit-name-input').addEventListener('change', function(){ updateHabitName(this.getAttribute('data-hid'), this.value); });
+    row.querySelector('.habit-cat-select').addEventListener('change', function(){ updateHabitCat(this.getAttribute('data-hid'), this.value); });
+    row.querySelector('.del-btn').addEventListener('click', function(){ deleteHabit(this.getAttribute('data-hid')); });
+    list.appendChild(row);
+  });
+  document.getElementById('habitCount').textContent = t('habitCount', {n: state.habits.length});
+  var cg = document.getElementById('catGrid'); cg.innerHTML = '';
+  [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')].forEach(function(cat){
+    var habitsInCat = state.habits.filter(function(h){ return h.category===cat; });
+    var style = getCatStyle(cat);
+    var card = document.createElement('div'); card.className='card'; card.style.borderTop = '3px solid '+style.color;
+    var habitsHtml = habitsInCat.map(function(h){ return '<span style="background:var(--bg-deep);border:1px solid var(--border);padding:4px 10px;border-radius:8px;font-size:12px;">'+h.emoji+' '+escapeHtml(h.name)+'</span>'; }).join('');
+    if(!habitsInCat.length) habitsHtml = '<span style="font-size:12px;color:var(--text-muted);">'+t('noHabitsYet')+'</span>';
+    card.innerHTML =
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">'+
+        '<div style="width:36px;height:36px;border-radius:10px;background:'+style.bg+';display:flex;align-items:center;justify-content:center;color:'+style.color+';box-shadow:0 0 12px '+style.glow+';"><i class="fas '+getCatIcon(cat)+'"></i></div>'+
+        '<div><div style="font-weight:700;font-size:14px;">'+cat+'</div><div style="font-size:12px;color:var(--text-muted);">'+habitsInCat.length+'</div></div>'+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;">'+habitsHtml+'</div>';
+    cg.appendChild(card);
+  });
 }
 
 function addHabit(){
-  try {
-    var name = document.getElementById('newHabitName').value.trim();
-    var cat = document.getElementById('newHabitCat').value;
-    var emoji = document.getElementById('newHabitEmoji').value.trim()||'✨';
-    if(!name){ showToast(t('msgEnterHabit'),'info'); return; }
-    state.habits.push({ id:'h'+Date.now(), name:name, emoji:emoji, category:cat }); markUnsaved();
-    document.getElementById('newHabitName').value=''; saveToStorage(); renderAll(); showToast(t('msgAddedHabit'),'success');
-  } catch(e){ console.error('[Nebula] addHabit error:', e); }
+  var name = document.getElementById('newHabitName').value.trim();
+  var cat = document.getElementById('newHabitCat').value;
+  var emoji = document.getElementById('newHabitEmoji').value.trim()||'✨';
+  if(!name){ showToast(t('msgEnterHabit'),'info'); return; }
+  state.habits.push({ id:'h'+Date.now(), name:name, emoji:emoji, category:cat }); markUnsaved();
+  document.getElementById('newHabitName').value=''; saveToStorage(); renderAll(); showToast(t('msgAddedHabit'),'success');
 }
-
-function updateEmoji(hid, el){
-  try { var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.emoji=el.textContent.trim(); saveToStorage(); renderAll(); } } catch(e){}
-}
-function updateHabitName(hid, val){
-  try { var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.name=val; saveToStorage(); renderAll(); } } catch(e){}
-}
-function updateHabitCat(hid, val){
-  try { var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.category=val; saveToStorage(); renderAll(); } } catch(e){}
-}
+function updateEmoji(hid, el){ var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.emoji=el.textContent.trim(); saveToStorage(); renderAll(); } }
+function updateHabitName(hid, val){ var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.name=val; saveToStorage(); renderAll(); } }
+function updateHabitCat(hid, val){ var h=state.habits.filter(function(x){ return x.id===hid; })[0]; if(h){ h.category=val; saveToStorage(); renderAll(); } }
 function deleteHabit(hid){
-  try {
-    state.habits=state.habits.filter(function(x){ return x.id!==hid; });
-    Object.keys(state.completions).forEach(function(k){ delete state.completions[k][hid]; });
-    saveToStorage(); renderAll(); showToast(t('msgRemovedHabit'),'info');
-  } catch(e){ console.error('[Nebula] deleteHabit error:', e); }
+  state.habits=state.habits.filter(function(x){ return x.id!==hid; });
+  Object.keys(state.completions).forEach(function(k){ delete state.completions[k][hid]; });
+  saveToStorage(); renderAll(); showToast(t('msgRemovedHabit'),'info');
 }
-} catch(e) { console.error('[Nebula] Setup module failed:', e); }
 
-// ===================== REWARDS =====================
-try {
 function renderRewards(){
-  try {
-    var grid = document.getElementById('rewardsGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-    state.rewards.forEach(function(r){
-      try {
-        var pct = getCategoryCompletion(r.category); var unlocked = pct >= r.threshold; var prev = r.unlocked;
-        r.unlocked = unlocked; if(unlocked && !prev) triggerRewardUnlock(r);
-        var card = document.createElement('div'); card.className = 'reward-card '+(unlocked?'unlocked':'locked');
-        var cinfo = getCatStyle(r.category);
-        card.innerHTML =
-          '<div class="reward-badge">'+(unlocked?t('unlocked'):t('locked'))+'</div>'+
-          '<div class="reward-title">'+(r.emoji||'🎁')+' '+escapeHtml(r.name)+'</div>'+
-          '<div class="reward-desc">'+escapeHtml(r.desc)+'</div>'+
-          '<div class="reward-meta"><span class="dot" style="background:'+cinfo.color+';box-shadow:0 0 6px '+cinfo.glow+';"></span> '+escapeHtml(r.category)+' · '+t('atThreshold')+' '+r.threshold+'%</div>'+
-          '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+Math.min(pct,100)+'%;background:'+cinfo.color+';box-shadow:0 0 10px '+cinfo.glow+';"></div></div>'+
-          '<div class="threshold-label">'+Math.round(pct)+'% / '+r.threshold+'%</div>'+
-          '<div class="celebration-overlay"><div class="sparkle">✨</div></div>';
-        grid.appendChild(card);
-      } catch(e2){ console.warn('[Nebula] renderRewards card error:', e2); }
-    });
-  } catch(e){ console.error('[Nebula] renderRewards error:', e); }
+  var grid = document.getElementById('rewardsGrid'); grid.innerHTML = '';
+  state.rewards.forEach(function(r){
+    var pct = getCategoryCompletion(r.category); var unlocked = pct >= r.threshold; var prev = r.unlocked;
+    r.unlocked = unlocked; if(unlocked && !prev) triggerRewardUnlock(r);
+    var card = document.createElement('div'); card.className = 'reward-card '+(unlocked?'unlocked':'locked');
+    var cinfo = getCatStyle(r.category);
+    card.innerHTML =
+      '<div class="reward-badge">'+(unlocked?t('unlocked'):t('locked'))+'</div>'+
+      '<div class="reward-title">'+(r.emoji||'🎁')+' '+escapeHtml(r.name)+'</div>'+
+      '<div class="reward-desc">'+escapeHtml(r.desc)+'</div>'+
+      '<div class="reward-meta"><span class="dot" style="background:'+cinfo.color+';box-shadow:0 0 6px '+cinfo.glow+';"></span> '+escapeHtml(r.category)+' · '+t('atThreshold')+' '+r.threshold+'%</div>'+
+      '<div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:'+Math.min(pct,100)+'%;background:'+cinfo.color+';box-shadow:0 0 10px '+cinfo.glow+';"></div></div>'+
+      '<div class="threshold-label">'+Math.round(pct)+'% / '+r.threshold+'%</div>'+
+      '<div class="celebration-overlay"><div class="sparkle">✨</div></div>';
+    grid.appendChild(card);
+  });
 }
 
 function getCategoryCompletion(cat){
-  try {
-    var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return 0;
-    var done=0, total=0;
-    Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
-    return total ? (done/total)*100 : 0;
-  } catch(e){ return 0; }
+  // SUSTAINED PROGRESS ALGORITHM: evaluate performance only over the last 30 days
+  // Rewards unlock only when the rolling 30-day average >= threshold, preventing Day 1 triggers.
+  var habits = state.habits.filter(function(h){ return h.category===cat; });
+  if(!habits.length) return 0;
+  // Build last-30-days window
+  var window30 = [];
+  var today = new Date();
+  for(var i=0; i<30; i++){
+    var d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - i);
+    window30.push(fmtDate(d));
+  }
+  // Only count days where we have at least one completion record in the app
+  // (avoids penalizing days before the app was installed)
+  var daysWithData = window30.filter(function(k){ return state.completions[k] !== undefined; });
+  if(daysWithData.length < 3) return 0; // need at least 3 days of data — never fires on Day 1
+  var done=0, total=0;
+  daysWithData.forEach(function(k){
+    habits.forEach(function(h){
+      total++;
+      if(state.completions[k] && state.completions[k][h.id]) done++;
+    });
+  });
+  return total ? (done/total)*100 : 0;
 }
 
 function triggerRewardUnlock(r){
-  try {
-    safeConfetti({ particleCount:120, spread:80, origin:{y:0.6}, colors:['#fbbf24','#f472b6','#a855f7','#38bdf8'] });
-    var mi = document.getElementById('modalIcon'); if(mi) mi.textContent = '🎉';
-    var mt = document.getElementById('modalTitle'); if(mt) mt.textContent = t('modalRewardTitle')+' '+r.name;
-    var mb = document.getElementById('modalBody'); if(mb) mb.textContent = t('atThreshold')+' '+r.threshold+'% '+t('subByCompletion').toLowerCase()+' '+r.category+'! '+r.desc;
-    var m = document.getElementById('modal'); if(m) m.classList.add('show');
-    saveToStorage();
-  } catch(e){ console.warn('[Nebula] triggerRewardUnlock error:', e); }
+  if(typeof confetti === 'function') confetti({ particleCount:120, spread:80, origin:{y:0.6}, colors:['#fbbf24','#f472b6','#a855f7','#38bdf8'] });
+  document.getElementById('modalIcon').textContent = '🎉';
+  document.getElementById('modalTitle').textContent = t('modalRewardTitle')+' '+r.name;
+  document.getElementById('modalBody').textContent = t('atThreshold')+' '+r.threshold+'% '+t('subByCompletion').toLowerCase()+' '+r.category+'! '+r.desc;
+  document.getElementById('modal').classList.add('show'); saveToStorage();
 }
 
 function addReward(){
-  try {
-    var name = document.getElementById('rewardName').value.trim();
-    var desc = document.getElementById('rewardDesc').value.trim();
-    var cat = document.getElementById('rewardCat').value;
-    var threshold = parseInt(document.getElementById('rewardThreshold').value);
-    if(!name){ showToast(t('msgEnterReward'),'info'); return; }
-    state.rewards.push({ id:'r'+Date.now(), name:name, desc:desc, category:cat, threshold:threshold, unlocked:false });
-    document.getElementById('rewardName').value=''; document.getElementById('rewardDesc').value='';
-    saveToStorage(); renderAll(); showToast(t('msgAddedReward'),'success');
-  } catch(e){ console.error('[Nebula] addReward error:', e); }
+  var name = document.getElementById('rewardName').value.trim();
+  var desc = document.getElementById('rewardDesc').value.trim();
+  var cat = document.getElementById('rewardCat').value;
+  var threshold = parseInt(document.getElementById('rewardThreshold').value);
+  if(!name){ showToast(t('msgEnterReward'),'info'); return; }
+  state.rewards.push({ id:'r'+Date.now(), name:name, desc:desc, category:cat, threshold:threshold, unlocked:false });
+  document.getElementById('rewardName').value=''; document.getElementById('rewardDesc').value='';
+  saveToStorage(); renderAll(); showToast(t('msgAddedReward'),'success');
 }
-function checkRewards(){ try { renderRewards(); } catch(e){} }
-function closeModal(){ try { document.getElementById('modal').classList.remove('show'); } catch(e){} }
-} catch(e) { console.error('[Nebula] Rewards module failed:', e); }
+function checkRewards(){ renderRewards(); }
+function closeModal(){ document.getElementById('modal').classList.remove('show'); }
 
-// ===================== RESET =====================
-try {
+// ===== RESET PLANNER =====
 function showResetConfirm(){
-  try {
-    var ct = document.getElementById('confirmTitle'); if(ct) ct.textContent = t('confirmTitle');
-    var cb = document.getElementById('confirmBody'); if(cb) cb.textContent = t('confirmBody');
-    var cok = document.getElementById('confirmOkBtn'); if(cok) cok.textContent = t('confirmOk');
-    var ccan = document.getElementById('confirmCancelBtn'); if(ccan) ccan.textContent = t('confirmCancel');
-    var co = document.getElementById('confirmOverlay'); if(co) co.classList.add('show');
-  } catch(e){}
+  document.getElementById('confirmTitle').textContent = t('confirmTitle');
+  document.getElementById('confirmBody').textContent = t('confirmBody');
+  document.getElementById('confirmOkBtn').textContent = t('confirmOk');
+  document.getElementById('confirmCancelBtn').textContent = t('confirmCancel');
+  document.getElementById('confirmOverlay').classList.add('show');
 }
 function hideResetConfirm(){
-  try { document.getElementById('confirmOverlay').classList.remove('show'); } catch(e){}
+  document.getElementById('confirmOverlay').classList.remove('show');
 }
 function doReset(){
   try {
-    ['nebula_habit_tracker_multi','nebula_lang','nebula_last_backup','nebula_notes','nebula_quote_idx'].forEach(function(k){
-      try { localStorage.removeItem(k); } catch(e){}
-    });
-    hideResetConfirm();
-    window.location.reload();
-  } catch(e){ console.error('[Nebula] doReset error:', e); }
+    _safeStorage.removeItem('nebula_habit_tracker_multi');
+    _safeStorage.removeItem('nebula_lang');
+    _safeStorage.removeItem('nebula_last_backup');
+    _safeStorage.removeItem('nebula_notes');
+    _safeStorage.removeItem('nebula_quote_idx');
+    _safeStorage.removeItem('nebula_xp_state');
+    _safeStorage.removeItem('nebula_longTermHabits');
+    _safeStorage.removeItem('nebula_notif_dismissed');
+    _safeStorage.removeItem('nebula_notif_fired');
+  } catch(e){}
+  hideResetConfirm();
+  window.location.reload();
 }
-} catch(e) { console.error('[Nebula] Reset module failed:', e); }
 
-// ===================== ANALYTICS =====================
-try {
 var monthlyTrendInst, streakInst, dailyRateInst, radarInst;
 
 function renderAnalytics(){
-  try {
-    // Monthly trend line chart
-    try {
-      var mt = getMonthlyTrend();
-      if(monthlyTrendInst) { try { monthlyTrendInst.destroy(); } catch(e){} }
-      monthlyTrendInst = safeChart('monthlyTrendChart', {
-        type:'line',
-        data:{ labels:mt.labels, datasets:[{ label: t('chartCompletionPct'), data:mt.data, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.1)', fill:true, tension:0.4, pointBackgroundColor:'#a855f7', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
-        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-      });
-    } catch(e){ console.warn('[Nebula] monthlyTrendChart:', e); }
-
-    // Streak bar chart
-    try {
-      var sc = getCategoryStreaks();
-      if(streakInst) { try { streakInst.destroy(); } catch(e){} }
-      streakInst = safeChart('streakChart', {
-        type:'bar',
-        data:{ labels:sc.labels.map(translateCategory), datasets:[{ label: t('chartStreakDays'), data:sc.data, backgroundColor:sc.colors, borderRadius:8, barThickness:28 }] },
-        options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ beginAtZero:true, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, y:{ grid:{display:false}, ticks:{color:'#94a3b8',font:{size:12}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-      });
-    } catch(e){ console.warn('[Nebula] streakChart:', e); }
-
-    // Daily rate bar chart
-    try {
-      var dr = getDailyRateThisMonth();
-      if(dailyRateInst) { try { dailyRateInst.destroy(); } catch(e){} }
-      dailyRateInst = safeChart('dailyRateChart', {
-        type:'bar',
-        data:{ labels:dr.labels, datasets:[{ label:'%', data:dr.data, backgroundColor:dr.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:4, barThickness:6 }] },
-        options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:10}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:9},maxRotation:0} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-      });
-    } catch(e){ console.warn('[Nebula] dailyRateChart:', e); }
-
-    // Radar chart
-    try {
-      var rd = getRadarData();
-      if(radarInst) { try { radarInst.destroy(); } catch(e){} }
-      radarInst = safeChart('radarChart', {
-        type:'radar',
-        data:{ labels:rd.labels.map(translateCategory), datasets:[{ label: t('chartScore'), data:rd.data, borderColor:'#f472b6', backgroundColor:'rgba(244,114,182,0.15)', pointBackgroundColor:'#f472b6', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
-        options:{ responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.06)'}, pointLabels:{color:'#94a3b8',font:{size:11}}, ticks:{display:false} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
-      });
-    } catch(e){ console.warn('[Nebula] radarChart:', e); }
-
-  } catch(e){ console.error('[Nebula] renderAnalytics error:', e); }
+  var mt = getMonthlyTrend();
+  if(typeof Chart === 'undefined') return;
+  var mtEl = document.getElementById('monthlyTrendChart');
+  if(!mtEl) return;
+  var mtCtx = mtEl.getContext('2d');
+  if(monthlyTrendInst) { try { monthlyTrendInst.destroy(); } catch(e){} }
+  monthlyTrendInst = new Chart(mtCtx,{
+    type:'line',
+    data:{ labels:mt.labels, datasets:[{ label: t('chartCompletionPct'), data:mt.data, borderColor:'#a855f7', backgroundColor:'rgba(168,85,247,0.1)', fill:true, tension:0.4, pointBackgroundColor:'#a855f7', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:11}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+  });
+  var sc = getCategoryStreaks();
+  var scEl = document.getElementById('streakChart');
+  if(!scEl) return;
+  var scCtx = scEl.getContext('2d');
+  if(streakInst) { try { streakInst.destroy(); } catch(e){} }
+  streakInst = new Chart(scCtx,{
+    type:'bar',
+    data:{ labels:sc.labels.map(translateCategory), datasets:[{ label: t('chartStreakDays'), data:sc.data, backgroundColor:sc.colors, borderRadius:8, barThickness:28 }] },
+    options:{ responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ beginAtZero:true, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:11}} }, y:{ grid:{display:false}, ticks:{color:'#94a3b8',font:{size:12}} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+  });
+  var dr = getDailyRateThisMonth();
+  var drEl = document.getElementById('dailyRateChart');
+  if(!drEl) return;
+  var drCtx = drEl.getContext('2d');
+  if(dailyRateInst) { try { dailyRateInst.destroy(); } catch(e){} }
+  dailyRateInst = new Chart(drCtx,{
+    type:'bar',
+    data:{ labels:dr.labels, datasets:[{ label:'%', data:dr.data, backgroundColor:dr.data.map(function(v){ return v>=80?'#34d399':v>=50?'#38bdf8':'#f472b6'; }), borderRadius:4, barThickness:6 }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#64748b',font:{size:10}} }, x:{ grid:{display:false}, ticks:{color:'#64748b',font:{size:9},maxRotation:0} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+  });
+  var rd = getRadarData();
+  var rdEl = document.getElementById('radarChart');
+  if(!rdEl) return;
+  var rdCtx = rdEl.getContext('2d');
+  if(radarInst) { try { radarInst.destroy(); } catch(e){} }
+  radarInst = new Chart(rdCtx,{
+    type:'radar',
+    data:{ labels:rd.labels.map(translateCategory), datasets:[{ label: t('chartScore'), data:rd.data, borderColor:'#f472b6', backgroundColor:'rgba(244,114,182,0.15)', pointBackgroundColor:'#f472b6', pointBorderColor:'#fff', pointRadius:4, borderWidth:2 }] },
+    options:{ responsive:true, maintainAspectRatio:false, scales:{ r:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,0.06)'}, pointLabels:{color:'#94a3b8',font:{size:11}}, ticks:{display:false} } }, plugins:{ legend:{display:false}, tooltip:{ backgroundColor:'#1a2233', titleColor:'#f0f4f8', bodyColor:'#94a3b8', borderColor:'rgba(255,255,255,0.08)', borderWidth:1 } } }
+  });
 }
 
 function getMonthlyTrend(){
-  try {
-    var labels=[], data=[]; var d = new Date(); d.setMonth(d.getMonth()-5);
-    for(var i=0;i<6;i++){
-      var y=d.getFullYear(), m=d.getMonth();
-      try { labels.push(d.toLocaleDateString(getLocale(),{month:'short'})); }
-      catch(e){ labels.push(d.toLocaleDateString('en-US',{month:'short'})); }
-      var dim=daysInMonth(y,m); var done=0, total=0;
-      for(var day=1; day<=dim; day++){
-        var k=getDayKey(y,m,day);
-        state.habits.forEach(function(h){ total++; if(state.completions[k]&&state.completions[k][h.id]) done++; });
-      }
-      data.push(total?Math.round((done/total)*100):0); d.setMonth(d.getMonth()+1);
+  var labels=[], data=[]; var d = new Date(); d.setMonth(d.getMonth()-5);
+  for(var i=0;i<6;i++){
+    var y=d.getFullYear(), m=d.getMonth();
+    try { labels.push(d.toLocaleDateString(getLocale(),{month:'short'})); }
+    catch(e){ labels.push(d.toLocaleDateString('en-US',{month:'short'})); }
+    var dim=daysInMonth(y,m); var done=0, total=0;
+    for(var day=1; day<=dim; day++){
+      var k=getDayKey(y,m,day);
+      state.habits.forEach(function(h){ total++; if(state.completions[k]&&state.completions[k][h.id]) done++; });
     }
-    return { labels:labels, data:data };
-  } catch(e){ return { labels:[], data:[] }; }
+    data.push(total?Math.round((done/total)*100):0); d.setMonth(d.getMonth()+1);
+  }
+  return { labels:labels, data:data };
 }
 
 function getCategoryStreaks(){
-  try {
-    var labels=[], data=[], colors=[];
-    var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-    cats.forEach(function(cat){
-      try {
-        var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
-        labels.push(cat); colors.push(getCatStyle(cat).color); var streak=0; var check = new Date();
-        while(true){
-          var k=fmtDate(check);
-          var allDone = habits.every(function(h){ return state.completions[k]&&state.completions[k][h.id]; });
-          if(allDone){ streak++; check.setDate(check.getDate()-1); } else break;
-        }
-        data.push(streak);
-      } catch(e2){}
-    });
-    return { labels:labels, data:data, colors:colors };
-  } catch(e){ return { labels:[], data:[], colors:[] }; }
+  var labels=[], data=[], colors=[];
+  var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+  cats.forEach(function(cat){
+    var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
+    labels.push(cat); colors.push(getCatStyle(cat).color); var streak=0; var check = new Date();
+    while(true){
+      var k=fmtDate(check);
+      var allDone = habits.every(function(h){ return state.completions[k]&&state.completions[k][h.id]; });
+      if(allDone){ streak++; check.setDate(check.getDate()-1); } else break;
+    }
+    data.push(streak);
+  });
+  return { labels:labels, data:data, colors:colors };
 }
 
 function getDailyRateThisMonth(){
-  try {
-    var labels=[], data=[];
-    var y=now.getFullYear(), m=now.getMonth(); var dim=daysInMonth(y,m);
-    for(var d=1; d<=dim; d++){
-      labels.push(String(d));
-      var k=getDayKey(y,m,d);
-      var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
-      data.push(state.habits.length?Math.round((done/state.habits.length)*100):0);
-    }
-    return { labels:labels, data:data };
-  } catch(e){ return { labels:[], data:[] }; }
+  var labels=[], data=[];
+  var y=now.getFullYear(), m=now.getMonth(); var dim=daysInMonth(y,m);
+  for(var d=1; d<=dim; d++){
+    labels.push(String(d));
+    var k=getDayKey(y,m,d);
+    var done = state.habits.filter(function(h){ return state.completions[k]&&state.completions[k][h.id]; }).length;
+    data.push(state.habits.length?Math.round((done/state.habits.length)*100):0);
+  }
+  return { labels:labels, data:data };
 }
 
 function getRadarData(){
-  try {
-    var labels=[], data=[];
-    var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
-    cats.forEach(function(cat){
-      try {
-        var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
-        labels.push(cat); var done=0, total=0;
-        Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
-        data.push(total?Math.round((done/total)*100):0);
-      } catch(e2){}
-    });
-    return { labels:labels, data:data };
-  } catch(e){ return { labels:[], data:[] }; }
+  var labels=[], data=[];
+  var cats = [t('catReligion'), t('catHealth'), t('catProductivity'), t('catWellness'), t('catFitness')];
+  cats.forEach(function(cat){
+    var habits = state.habits.filter(function(h){ return h.category===cat; }); if(!habits.length) return;
+    labels.push(cat); var done=0, total=0;
+    Object.keys(state.completions).forEach(function(k){ habits.forEach(function(h){ total++; if(state.completions[k][h.id]) done++; }); });
+    data.push(total?Math.round((done/total)*100):0);
+  });
+  return { labels:labels, data:data };
 }
-} catch(e) { console.error('[Nebula] Analytics module failed:', e); }
 
-// ===================== DATA I/O =====================
-try {
-function downloadData(){
+function saveToStorage(){
   try {
-    var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-    var url = URL.createObjectURL(blob); var a = document.createElement('a');
-    a.href=url; a.download='nebula-tracker-'+currentLang+'.json'; a.click(); URL.revokeObjectURL(url);
-    saveToStorage(); showToast(t('msgSaved'),'success');
-  } catch(e){ console.error('[Nebula] downloadData error:', e); }
+    _safeStorage.setItem('nebula_habit_tracker_multi', JSON.stringify(state));
+    setUnsavedIndicator(false);
+  } catch(e){}
+}
+
+var _unsavedTimer = null;
+function markUnsaved(){
+  setUnsavedIndicator(true);
+  clearTimeout(_unsavedTimer);
+  _unsavedTimer = setTimeout(saveToStorage, 800);
+}
+function setUnsavedIndicator(unsaved){
+  var dot = document.getElementById('unsavedDot');
+  var btn = document.getElementById('saveBtn');
+  if(!dot || !btn) return;
+  if(unsaved){ dot.style.display='inline-block'; btn.title=t('msgUnsaved'); }
+  else { dot.style.display='none'; btn.title=t('msgAllSaved'); }
+}
+function loadFromStorage(){
+  try {
+    var raw = _safeStorage.getItem('nebula_habit_tracker_multi');
+    if(raw){
+      var parsed=JSON.parse(raw);
+      if(parsed.habits && parsed.habits.length) state.habits = parsed.habits;
+      if(parsed.rewards && parsed.rewards.length) state.rewards = parsed.rewards;
+      if(parsed.completions) state.completions = parsed.completions;
+    }
+  } catch(e){}
+}
+
+function downloadData(){
+  var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var url = URL.createObjectURL(blob); var a = document.createElement('a');
+  a.href=url; a.download='nebula-tracker-'+currentLang+'.json'; a.click(); URL.revokeObjectURL(url);
+  saveToStorage();
+  showToast(t('msgSaved'),'success');
 }
 
 function manualBackup(){
-  try {
-    var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
-    var url = URL.createObjectURL(blob); var a = document.createElement('a');
-    var dateStr = new Date().toISOString().split('T')[0];
-    a.href=url; a.download='glowhabit-backup-'+dateStr+'.json'; a.click(); URL.revokeObjectURL(url);
-    try { localStorage.setItem('nebula_last_backup', dateStr); } catch(e){}
-    showToast(t('msgAutoBackup'),'success');
-  } catch(e){ console.error('[Nebula] manualBackup error:', e); }
+  var blob = new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  var url = URL.createObjectURL(blob); var a = document.createElement('a');
+  var dateStr = new Date().toISOString().split('T')[0];
+  a.href=url; a.download='glowhabit-backup-'+dateStr+'.json'; a.click(); URL.revokeObjectURL(url);
+  _safeStorage.setItem('nebula_last_backup', dateStr);
+  showToast(t('msgAutoBackup'),'success');
 }
 
 function uploadData(input){
-  try {
-    var file = input.files[0]; if(!file) return;
-    var reader = new FileReader();
-    reader.onload = function(e){
-      try {
-        var parsed = JSON.parse(e.target.result);
-        if(parsed.habits) state.habits = parsed.habits;
-        if(parsed.rewards) state.rewards = parsed.rewards;
-        if(parsed.completions) state.completions = parsed.completions;
-        saveToStorage(); renderAll(); showToast(t('msgLoaded'),'success');
-      } catch(err){ showToast(t('msgInvalidFile'),'info'); }
-    };
-    reader.readAsText(file); input.value='';
-  } catch(e){ console.error('[Nebula] uploadData error:', e); }
+  var file = input.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var parsed = JSON.parse(e.target.result);
+      if(parsed.habits) state.habits = parsed.habits;
+      if(parsed.rewards) state.rewards = parsed.rewards;
+      if(parsed.completions) state.completions = parsed.completions;
+      saveToStorage(); renderAll(); showToast(t('msgLoaded'),'success');
+    } catch(err){ showToast(t('msgInvalidFile'),'info'); }
+  };
+  reader.readAsText(file); input.value='';
 }
 
 function showToast(msg, type){
-  try {
-    var t_el = document.getElementById('toast');
-    var tm = document.getElementById('toastMsg');
-    if (!t_el || !tm) return;
-    tm.textContent = msg;
-    t_el.className = 'toast '+type+' show';
-    setTimeout(function(){ try { t_el.classList.remove('show'); } catch(e){} }, 2600);
-  } catch(e){}
+  var t_el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t_el.className = 'toast '+type+' show';
+  setTimeout(function(){ t_el.classList.remove('show'); }, 2600);
 }
-} catch(e) { console.error('[Nebula] Data I/O module failed:', e); }
 
-// ===================== BACKUP REMINDER =====================
-try {
 function checkBackupReminder(){
-  try {
-    var lastBackup;
-    try { lastBackup = localStorage.getItem('nebula_last_backup'); } catch(e){}
-    if(!lastBackup){ setTimeout(showBackupBanner, 3000); return; }
-    var last = new Date(lastBackup);
-    var diff = (new Date() - last) / (1000*60*60*24);
-    if(diff >= 7){ setTimeout(showBackupBanner, 3000); }
-  } catch(e){}
+  var lastBackup;
+  lastBackup = _safeStorage.getItem('nebula_last_backup');
+  if(!lastBackup){ setTimeout(showBackupBanner, 3000); return; }
+  var last = new Date(lastBackup);
+  var diff = (new Date() - last) / (1000*60*60*24);
+  if(diff >= 7){ setTimeout(showBackupBanner, 3000); }
 }
 
 function showBackupBanner(){
-  try {
-    if(document.getElementById('backupBanner')) return;
-    var banner = document.createElement('div');
-    banner.id = 'backupBanner';
-    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(168,85,247,0.15));border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;font-weight:600;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);';
-    banner.innerHTML =
-      '<i class="fas fa-shield-alt" style="color:var(--neon-amber)"></i>'+
-      '<span style="color:var(--text-primary)">'+t('msgBackupReminder')+'</span>'+
-      '<button id="bannerBackupBtn" style="background:var(--neon-amber);color:#000;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;">'+t('btnBackup')+'</button>'+
-      '<button id="bannerCloseBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>';
-    document.body.prepend(banner);
-    var bbb = document.getElementById('bannerBackupBtn');
-    var bcb = document.getElementById('bannerCloseBtn');
-    if(bbb) bbb.onclick = function(){ manualBackup(); closeBanner(); };
-    if(bcb) bcb.onclick = closeBanner;
-  } catch(e){ console.warn('[Nebula] showBackupBanner error:', e); }
+  if(document.getElementById('backupBanner')) return;
+  var banner = document.createElement('div');
+  banner.id = 'backupBanner';
+  banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:linear-gradient(90deg,rgba(251,191,36,0.15),rgba(168,85,247,0.15));border-bottom:1px solid rgba(251,191,36,0.3);padding:10px 20px;display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;font-weight:600;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);';
+  banner.innerHTML =
+    '<i class="fas fa-shield-alt" style="color:var(--neon-amber)"></i>'+
+    '<span style="color:var(--text-primary)">'+t('msgBackupReminder')+'</span>'+
+    '<button id="bannerBackupBtn" style="background:var(--neon-amber);color:#000;border:none;border-radius:8px;padding:6px 14px;font-weight:700;font-size:12px;cursor:pointer;">'+t('btnBackup')+'</button>'+
+    '<button id="bannerCloseBtn" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:16px;">✕</button>';
+  document.body.prepend(banner);
+  document.getElementById('bannerBackupBtn').onclick = function(){ manualBackup(); closeBanner(); };
+  document.getElementById('bannerCloseBtn').onclick = closeBanner;
 }
-
 function closeBanner(){
-  try { var b = document.getElementById('backupBanner'); if(b) b.remove(); } catch(e){}
+  var b = document.getElementById('backupBanner');
+  if(b) b.remove();
 }
-} catch(e) { console.error('[Nebula] Backup reminder module failed:', e); }
 
 // ===================== QUOTES ENGINE =====================
-try {
 var QUOTES = [
   { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle" },
   { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
@@ -1804,405 +2264,1254 @@ var _quoteIdx = -1;
 var _quoteInterval = null;
 
 function cycleQuote(userTriggered) {
-  try {
-    var next;
-    do { next = Math.floor(Math.random() * QUOTES.length); } while (next === _quoteIdx && QUOTES.length > 1);
-    _quoteIdx = next;
-    var q = QUOTES[next];
-    var wrap = document.getElementById('quoteWrap');
-    var textEl = document.getElementById('quoteText');
-    var authEl = document.getElementById('quoteAuthor');
-    if (!wrap || !textEl || !authEl) return;
-    wrap.classList.remove('fading');
-    void wrap.offsetWidth;
-    wrap.classList.add('fading');
-    textEl.textContent = q.text;
-    authEl.textContent = '\u2014 ' + q.author;
-    try { localStorage.setItem('nebula_quote_idx', _quoteIdx); } catch(e){}
-  } catch(e){ console.warn('[Nebula] cycleQuote error:', e); }
+  var next;
+  do { next = Math.floor(Math.random() * QUOTES.length); } while (next === _quoteIdx && QUOTES.length > 1);
+  _quoteIdx = next;
+  var q = QUOTES[next];
+  var wrap = document.getElementById('quoteWrap');
+  var textEl = document.getElementById('quoteText');
+  var authEl = document.getElementById('quoteAuthor');
+  if (!wrap || !textEl || !authEl) return;
+  wrap.classList.remove('fading');
+  void wrap.offsetWidth; // force reflow to restart animation
+  wrap.classList.add('fading');
+  textEl.textContent = q.text;
+  authEl.textContent = '\u2014 ' + q.author;
+  _safeStorage.setItem('nebula_quote_idx', _quoteIdx);
 }
 
 function initQuotes() {
-  try {
-    try {
-      var stored = localStorage.getItem('nebula_quote_idx');
-      if (stored !== null) _quoteIdx = parseInt(stored) || -1;
-    } catch(e){}
-    cycleQuote(false);
-    _quoteInterval = setInterval(function() { try { cycleQuote(false); } catch(e){} }, 60000);
-  } catch(e){ console.error('[Nebula] initQuotes error:', e); }
+  var stored = _safeStorage.getItem('nebula_quote_idx');
+  if (stored !== null) _quoteIdx = parseInt(stored) || -1;
+  cycleQuote(false);
+  _quoteInterval = setInterval(function() { cycleQuote(false); }, 60000);
 }
-} catch(e) { console.error('[Nebula] Quotes module failed:', e); }
 
 // ===================== NOTES ENGINE =====================
-try {
 var notesData = {
-  notes: [],
+  notes: [],          // [{id, title, content, updatedAt}]
   activeId: null,
 };
 var _notesTimer = null;
 
 function loadNotes() {
   try {
-    var raw = localStorage.getItem('nebula_notes');
+    var raw = _safeStorage.getItem('nebula_notes');
     if (raw) {
       var parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) notesData.notes = parsed;
     }
-  } catch(e){ console.warn('[Nebula] loadNotes error (using empty):', e); }
+  } catch(e){}
 }
 
 function persistNotes() {
-  try { localStorage.setItem('nebula_notes', JSON.stringify(notesData.notes)); } catch(e){}
-  try { setNoteStatus('saved'); } catch(e){}
+  try { _safeStorage.setItem('nebula_notes', JSON.stringify(notesData.notes)); } catch(e){}
+  setNoteStatus('saved');
 }
 
 function setNoteStatus(st) {
-  try {
-    var el = document.getElementById('notesStatus');
-    var lbl = document.getElementById('notesStatusLabel');
-    if (!el || !lbl) return;
-    el.className = 'notes-autosave-status ' + st;
-    var cap = st.charAt(0).toUpperCase() + st.slice(1);
-    lbl.textContent = t('notes' + cap);
-  } catch(e){}
+  var el = document.getElementById('notesStatus');
+  var lbl = document.getElementById('notesStatusLabel');
+  if (!el || !lbl) return;
+  el.className = 'notes-autosave-status ' + st;
+  var cap = st.charAt(0).toUpperCase() + st.slice(1);
+  lbl.textContent = t('notes' + cap);
 }
 
 function scheduleNotesSave() {
-  try {
-    setNoteStatus('saving');
-    clearTimeout(_notesTimer);
-    _notesTimer = setTimeout(persistNotes, 600);
-  } catch(e){}
+  setNoteStatus('saving');
+  clearTimeout(_notesTimer);
+  _notesTimer = setTimeout(persistNotes, 600);
 }
 
 function renderNotesList() {
-  try {
-    var listEl = document.getElementById('notesList');
-    if (!listEl) return;
-    if (notesData.notes.length === 0) {
-      listEl.innerHTML = '<div class="notes-empty-list"><i class="fas fa-feather-alt"></i><span>'+t('notesEmptyList')+'</span></div>';
-      return;
+  var listEl = document.getElementById('notesList');
+  if (!listEl) return;
+  if (notesData.notes.length === 0) {
+    listEl.innerHTML = '<div class="notes-empty-list"><i class="fas fa-feather-alt"></i><span>'+t('notesEmptyList')+'</span></div>';
+    return;
+  }
+  // sort newest first
+  var sorted = notesData.notes.slice().sort(function(a,b){ return (b.updatedAt||0) - (a.updatedAt||0); });
+  listEl.innerHTML = '';
+  sorted.forEach(function(note) {
+    var item = document.createElement('div');
+    item.className = 'note-list-item' + (note.id === notesData.activeId ? ' active' : '');
+    var title = note.title || t('notesUntitled');
+    var snippet = (note.content || '').replace(/\n/g,' ').substring(0, 58);
+    var dateStr = '';
+    if (note.updatedAt) {
+      try { dateStr = new Date(note.updatedAt).toLocaleDateString(getLocale(), {month:'short', day:'numeric'}); }
+      catch(e) { dateStr = new Date(note.updatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}); }
     }
-    var sorted = notesData.notes.slice().sort(function(a,b){ return (b.updatedAt||0) - (a.updatedAt||0); });
-    listEl.innerHTML = '';
-    sorted.forEach(function(note) {
-      try {
-        var item = document.createElement('div');
-        item.className = 'note-list-item' + (note.id === notesData.activeId ? ' active' : '');
-        var title = note.title || t('notesUntitled');
-        var snippet = (note.content || '').replace(/\n/g,' ').substring(0, 58);
-        var dateStr = '';
-        if (note.updatedAt) {
-          try { dateStr = new Date(note.updatedAt).toLocaleDateString(getLocale(), {month:'short', day:'numeric'}); }
-          catch(e) { dateStr = new Date(note.updatedAt).toLocaleDateString('en-US', {month:'short', day:'numeric'}); }
-        }
-        item.innerHTML =
-          '<div class="note-item-title">'+escapeHtml(title)+'</div>'+
-          '<div class="note-item-snippet">'+escapeHtml(snippet || '…')+'</div>'+
-          '<div class="note-item-date">'+escapeHtml(dateStr)+'</div>';
-        (function(nid){ item.onclick = function(){ openNote(nid); }; })(note.id);
-        listEl.appendChild(item);
-      } catch(e2){}
-    });
-  } catch(e){ console.error('[Nebula] renderNotesList error:', e); }
+    item.innerHTML =
+      '<div class="note-item-title">'+escapeHtml(title)+'</div>'+
+      '<div class="note-item-snippet">'+escapeHtml(snippet || '…')+'</div>'+
+      '<div class="note-item-date">'+escapeHtml(dateStr)+'</div>';
+    (function(nid){ item.onclick = function(){ openNote(nid); }; })(note.id);
+    listEl.appendChild(item);
+  });
 }
 
 function openNote(noteId) {
-  try {
-    var note = null;
-    for (var i=0; i<notesData.notes.length; i++) {
-      if (notesData.notes[i].id === noteId) { note = notesData.notes[i]; break; }
-    }
-    if (!note) return;
-    notesData.activeId = noteId;
-    renderNotesList();
-    showNoteEditor(note);
-  } catch(e){ console.error('[Nebula] openNote error:', e); }
+  var note = null;
+  for (var i=0; i<notesData.notes.length; i++) {
+    if (notesData.notes[i].id === noteId) { note = notesData.notes[i]; break; }
+  }
+  if (!note) return;
+  notesData.activeId = noteId;
+  renderNotesList();
+  showNoteEditor(note);
 }
 
 function showNoteEditor(note) {
-  try {
-    var emptyState  = document.getElementById('notesEmptyState');
-    var editArea    = document.getElementById('notesEditArea');
-    var delBtn      = document.getElementById('notesDelBtn');
-    var titleInput  = document.getElementById('notesTitleInput');
-    var bodyInput   = document.getElementById('notesBodyInput');
-    if (emptyState) emptyState.style.display = 'none';
-    if (editArea)   { editArea.style.display = 'flex'; editArea.style.flexDirection = 'column'; }
-    if (delBtn)     delBtn.style.display = 'flex';
-    if (titleInput) titleInput.value = note.title || '';
-    if (bodyInput)  bodyInput.value  = note.content || '';
-    setNoteStatus('ready');
-    if (titleInput) { titleInput.oninput = function() { try { patchActiveNote(this.value, null); } catch(e){} }; }
-    if (bodyInput)  { bodyInput.oninput  = function() { try { patchActiveNote(null, this.value); } catch(e){} }; }
-  } catch(e){ console.error('[Nebula] showNoteEditor error:', e); }
+  var emptyState  = document.getElementById('notesEmptyState');
+  var editArea    = document.getElementById('notesEditArea');
+  var delBtn      = document.getElementById('notesDelBtn');
+  var titleInput  = document.getElementById('notesTitleInput');
+  var bodyInput   = document.getElementById('notesBodyInput');
+  if (emptyState) emptyState.style.display = 'none';
+  if (editArea)   { editArea.style.display = 'flex'; editArea.style.flexDirection = 'column'; }
+  if (delBtn)     delBtn.style.display = 'flex';
+  if (titleInput) titleInput.value = note.title || '';
+  if (bodyInput)  bodyInput.value  = note.content || '';
+  setNoteStatus('ready');
+  if (titleInput) {
+    titleInput.oninput = function() { patchActiveNote(this.value, null); };
+  }
+  if (bodyInput) {
+    bodyInput.oninput = function() { patchActiveNote(null, this.value); };
+  }
 }
 
 function hideNoteEditor() {
-  try {
-    var emptyState = document.getElementById('notesEmptyState');
-    var editArea   = document.getElementById('notesEditArea');
-    var delBtn     = document.getElementById('notesDelBtn');
-    if (emptyState) emptyState.style.display = 'flex';
-    if (editArea)   editArea.style.display   = 'none';
-    if (delBtn)     delBtn.style.display     = 'none';
-  } catch(e){}
+  var emptyState = document.getElementById('notesEmptyState');
+  var editArea   = document.getElementById('notesEditArea');
+  var delBtn     = document.getElementById('notesDelBtn');
+  if (emptyState) emptyState.style.display = 'flex';
+  if (editArea)   editArea.style.display   = 'none';
+  if (delBtn)     delBtn.style.display     = 'none';
 }
 
 function patchActiveNote(newTitle, newContent) {
-  try {
-    if (!notesData.activeId) return;
-    for (var i=0; i<notesData.notes.length; i++) {
-      if (notesData.notes[i].id === notesData.activeId) {
-        if (newTitle   !== null) notesData.notes[i].title   = newTitle;
-        if (newContent !== null) notesData.notes[i].content = newContent;
-        notesData.notes[i].updatedAt = Date.now();
-        break;
-      }
+  if (!notesData.activeId) return;
+  for (var i=0; i<notesData.notes.length; i++) {
+    if (notesData.notes[i].id === notesData.activeId) {
+      if (newTitle   !== null) notesData.notes[i].title   = newTitle;
+      if (newContent !== null) notesData.notes[i].content = newContent;
+      notesData.notes[i].updatedAt = Date.now();
+      break;
     }
-    renderNotesList();
-    scheduleNotesSave();
-  } catch(e){ console.error('[Nebula] patchActiveNote error:', e); }
+  }
+  renderNotesList();
+  scheduleNotesSave();
 }
 
 function createNewNote() {
-  try {
-    var note = { id:'n'+Date.now(), title:'', content:'', updatedAt:Date.now() };
-    notesData.notes.unshift(note);
-    notesData.activeId = note.id;
-    renderNotesList();
-    showNoteEditor(note);
-    persistNotes();
-    setTimeout(function(){
-      try { var ti = document.getElementById('notesTitleInput'); if (ti) ti.focus(); } catch(e){}
-    }, 60);
-  } catch(e){ console.error('[Nebula] createNewNote error:', e); }
+  var note = { id:'n'+Date.now(), title:'', content:'', updatedAt:Date.now() };
+  notesData.notes.unshift(note);
+  notesData.activeId = note.id;
+  renderNotesList();
+  showNoteEditor(note);
+  persistNotes();
+  setTimeout(function(){
+    var ti = document.getElementById('notesTitleInput');
+    if (ti) ti.focus();
+  }, 60);
 }
 
 function deleteCurrentNote() {
-  try {
-    if (!notesData.activeId) return;
-    notesData.notes = notesData.notes.filter(function(n){ return n.id !== notesData.activeId; });
-    notesData.activeId = null;
-    persistNotes();
-    renderNotesList();
-    hideNoteEditor();
-  } catch(e){ console.error('[Nebula] deleteCurrentNote error:', e); }
+  if (!notesData.activeId) return;
+  notesData.notes = notesData.notes.filter(function(n){ return n.id !== notesData.activeId; });
+  notesData.activeId = null;
+  persistNotes();
+  renderNotesList();
+  hideNoteEditor();
 }
 
 function initNotes() {
-  try { loadNotes(); } catch(e){}
-  try { renderNotesList(); } catch(e){}
+  loadNotes();
+  renderNotesList();
 }
-} catch(e) { console.error('[Nebula] Notes module failed:', e); }
 
-// ===================== GLOBAL EVENT LISTENERS =====================
-// These are attached independently so that even if any module above crashed,
-// modal close / keyboard shortcuts still work.
-try {
-  document.addEventListener('click', function(e){
-    try {
-      var overlay = document.getElementById('confirmOverlay');
-      if(e.target === overlay) hideResetConfirm();
-    } catch(e2){}
-  });
-} catch(e){}
+// ===================== FEATURE 1: XP & LEVELS =====================
+var XP_PER_COMPLETION = 50;
+var XP_PER_POMODORO   = 100;
+var _xpState = { xp: 0, level: 1 };
+var XP_THRESHOLDS = [0,200,450,750,1100,1500,2000,2600,3300,4100,5000];
+var LEVEL_TITLES   = ['Explorer','Starter','Builder','Achiever','Champion','Master','Legend','Sage','Guru','Titan','Nebula'];
 
-try {
-  document.addEventListener('keydown', function(e){
-    try {
-      if(e.key==='Escape' || e.keyCode===27){ closeModal(); hideResetConfirm(); }
-    } catch(e2){}
-  });
-} catch(e){}
-
-// ===================== INIT =====================
-function init(){
-  // Each init step is independently guarded. One failing step
-  // does NOT prevent subsequent steps from running.
+function loadXP() {
   try {
-    var savedLang;
-    try { savedLang = localStorage.getItem('nebula_lang'); } catch(e){}
-    if(savedLang && i18n[savedLang]) {
-      currentLang = savedLang;
-      var ls = document.getElementById('langSelect');
-      if(ls) ls.value = savedLang;
-      var html = document.getElementById('htmlRoot');
-      if(html){ html.lang = savedLang; html.dir = (savedLang === 'ar') ? 'rtl' : 'ltr'; }
+    var raw = _safeStorage.getItem('nebula_xp_state');
+    if (raw) {
+      var p = JSON.parse(raw);
+      if (typeof p.xp === 'number') _xpState.xp = p.xp;
+      if (typeof p.level === 'number') _xpState.level = p.level;
     }
-  } catch(e){ console.error('[Nebula] init lang step failed:', e); }
-
-  try { applyTranslations(); } catch(e){ console.error('[Nebula] applyTranslations failed:', e); }
-
-  try {
-    state.habits = getDefaultHabits();
-    state.rewards = getDefaultRewards();
-  } catch(e){ console.error('[Nebula] default data init failed:', e); }
-
-  try { loadFromStorage(); } catch(e){ console.error('[Nebula] loadFromStorage failed:', e); }
-  try { updateDateChip(); } catch(e){}
-  try { renderAll(); } catch(e){ console.error('[Nebula] renderAll initial failed:', e); }
-  try { initNotes(); } catch(e){ console.error('[Nebula] initNotes failed:', e); }
-  try { initQuotes(); } catch(e){ console.error('[Nebula] initQuotes failed:', e); }
-
-  try {
-    setInterval(function(){
-      try { updateGreeting(); } catch(e){}
-      try { updateDateChip(); } catch(e){}
-    }, 60000);
-  } catch(e){}
-
-  try { checkBackupReminder(); } catch(e){}
-  try { setInterval(checkBackupReminder, 3600000); } catch(e){}
+  } catch(e) {}
 }
 
-// DOMContentLoaded — cross-browser safe, independently guarded
-try {
-  if(document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){ try { init(); } catch(e){ console.error('[Nebula] DOMContentLoaded init error:', e); } });
-  } else {
-    try { init(); } catch(e){ console.error('[Nebula] Synchronous init error:', e); }
-  }
-} catch(e){ console.error('[Nebula] DOMContentLoaded listener setup failed:', e); }
+function saveXP() {
+  try { _safeStorage.setItem('nebula_xp_state', JSON.stringify(_xpState)); } catch(e) {}
+}
 
-// ===================== SERVICE WORKER (PWA) =====================
-try {
-  if ('serviceWorker' in navigator) {
-    window.addEventListener('load', function() {
-      navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function(reg) {
-        console.log('[SW] Registered, scope:', reg.scope);
-      }).catch(function(err) {
-        console.warn('[SW] Registration failed (normal when offline or no sw.js):', err);
-      });
-    });
+function addXP(amount) {
+  loadXP();
+  _xpState.xp += amount;
+  var oldLevel = _xpState.level;
+  // Calculate new level
+  for (var i = XP_THRESHOLDS.length - 1; i >= 1; i--) {
+    if (_xpState.xp >= XP_THRESHOLDS[i]) { _xpState.level = i + 1; break; }
+    if (i === 1 && _xpState.xp < XP_THRESHOLDS[1]) { _xpState.level = 1; }
   }
-} catch(e){ console.warn('[Nebula] Service Worker setup failed:', e); }
+  if (_xpState.level > XP_THRESHOLDS.length) _xpState.level = XP_THRESHOLDS.length;
+  var leveled = _xpState.level > oldLevel;
+  saveXP();
+  renderXPBar();
+  if (leveled) triggerLevelUp(_xpState.level);
+}
 
-// ===================== ADD-TO-HOME-SCREEN BANNER =====================
-try {
-(function(){
-  var DISMISS_KEY = 'nebula_a2hs_dismissed_at';
-  var SNOOZE_MS = 7 * 24 * 60 * 60 * 1000;
+function renderXPBar() {
+  loadXP();
+  var lvl = Math.min(_xpState.level, LEVEL_TITLES.length);
+  var curThresh  = XP_THRESHOLDS[lvl - 1] || 0;
+  var nextThresh = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+  var pct = (nextThresh > curThresh) ? Math.min(100, ((_xpState.xp - curThresh) / (nextThresh - curThresh)) * 100) : 100;
 
-  function isStandalone(){
-    try {
-      return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-        || window.navigator.standalone === true
-        || document.referrer.indexOf('android-app://') === 0;
-    } catch(e){ return false; }
+  var badge     = document.getElementById('xpLevelBadge');
+  var title     = document.getElementById('xpLevelTitle');
+  var countLbl  = document.getElementById('xpCountLabel');
+  var fill      = document.getElementById('xpBarFill');
+  if (!badge || !title || !countLbl || !fill) return;
+
+  badge.textContent   = 'Lv' + lvl;
+  title.textContent   = 'Level ' + lvl + ' — ' + (LEVEL_TITLES[lvl - 1] || 'Nebula');
+  countLbl.textContent = _xpState.xp + ' / ' + nextThresh + ' XP';
+  fill.style.width    = pct + '%';
+
+  // Flash animation
+  fill.classList.remove('xp-gained');
+  void fill.offsetWidth;
+  fill.classList.add('xp-gained');
+}
+
+function triggerLevelUp(newLevel) {
+  var badge = document.getElementById('xpLevelBadge');
+  if (badge) { badge.classList.remove('level-up-anim'); void badge.offsetWidth; badge.classList.add('level-up-anim'); }
+  var overlay = document.getElementById('levelUpOverlay');
+  var text    = document.getElementById('levelUpText');
+  if (overlay && text) {
+    text.textContent = '🚀 Level Up! Level ' + newLevel + ' — ' + (LEVEL_TITLES[newLevel - 1] || 'Nebula');
+    overlay.classList.remove('show');
+    void overlay.offsetWidth;
+    overlay.classList.add('show');
+    setTimeout(function() { overlay.classList.remove('show'); }, 2300);
   }
-  function isIOS(){
-    try {
-      var ua = window.navigator.userAgent || '';
-      var iOSDevice = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
-      var iPadOS = ua.indexOf('Mac') !== -1 && 'ontouchend' in document;
-      return iOSDevice || iPadOS;
-    } catch(e){ return false; }
-  }
-  function isIOSSafari(){
-    try {
-      var ua = window.navigator.userAgent || '';
-      return isIOS() && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
-    } catch(e){ return false; }
-  }
-  function recentlyDismissed(){
-    try {
-      var tv = parseInt(localStorage.getItem(DISMISS_KEY) || '0', 10);
-      return tv && (Date.now() - tv) < SNOOZE_MS;
-    } catch(e){ return false; }
-  }
-  function dismiss(){
-    try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch(e){}
-    hideBanner();
-  }
-  function hideBanner(){
-    try {
-      var b = document.getElementById('nebInstallBanner');
-      if(!b) return;
-      b.classList.remove('show');
-      setTimeout(function(){ try { if(b && b.parentNode) b.parentNode.removeChild(b); } catch(e){} }, 500);
-    } catch(e){}
-  }
-  function buildBanner(opts){
-    try {
-      if(document.getElementById('nebInstallBanner')) return;
-      var b = document.createElement('div');
-      b.id = 'nebInstallBanner';
-      b.setAttribute('role','dialog');
-      b.setAttribute('aria-live','polite');
-      b.innerHTML =
-        '<div class="nbi-ico"><i class="fas fa-infinity"></i></div>' +
-        '<div class="nbi-body">' +
-          '<p class="nbi-title">'+opts.title+'</p>' +
-          '<p class="nbi-sub">'+opts.sub+'</p>' +
-        '</div>' +
-        '<div class="nbi-actions">' +
-          (opts.primary ? '<button type="button" class="nbi-btn primary" id="nbiInstallBtn">'+opts.primary+'</button>' : '') +
-          '<button type="button" class="nbi-btn ghost" id="nbiCloseBtn" aria-label="Close">'+opts.close+'</button>' +
-        '</div>';
-      document.body.appendChild(b);
-      requestAnimationFrame(function(){ try { b.classList.add('show'); } catch(e){} });
-      var closeBtn = document.getElementById('nbiCloseBtn');
-      if(closeBtn) closeBtn.addEventListener('click', dismiss);
-      if(opts.onPrimary){
-        var pBtn = document.getElementById('nbiInstallBtn');
-        if(pBtn) pBtn.addEventListener('click', opts.onPrimary);
+  if (typeof confetti === 'function') confetti({ particleCount:80, spread:70, origin:{y:0.5}, colors:['#a855f7','#38bdf8','#f472b6'] });
+}
+
+// ===================== FEATURE 2: POMODORO TIMER =====================
+var _pomo = {
+  running: false, isBreak: false, session: 1,
+  totalSecs: 25 * 60, remainingSecs: 25 * 60, interval: null
+};
+var POMO_WORK_SECS  = 25 * 60;
+var POMO_BREAK_SECS = 5  * 60;
+var POMO_CIRCUMFERENCE = 2 * Math.PI * 65; // 408.41
+
+function pomodoroStart() {
+  if (_pomo.running) return;
+  _pomo.running = true;
+  document.getElementById('pomoBtnStart').style.display = 'none';
+  document.getElementById('pomoBtnPause').style.display = 'inline-flex';
+  _pomo.interval = setInterval(function() {
+    _pomo.remainingSecs--;
+    if (_pomo.remainingSecs <= 0) {
+      clearInterval(_pomo.interval);
+      _pomo.running = false;
+      if (!_pomo.isBreak) {
+        // Work session complete — award XP
+        addXP(XP_PER_POMODORO);
+        showToast(t('msgFocusComplete'), 'success');
+        _pomo.isBreak = true;
+        _pomo.totalSecs = POMO_BREAK_SECS;
+        _pomo.remainingSecs = POMO_BREAK_SECS;
+      } else {
+        // Break complete
+        _pomo.session++;
+        _pomo.isBreak = false;
+        _pomo.totalSecs = POMO_WORK_SECS;
+        _pomo.remainingSecs = POMO_WORK_SECS;
+        showToast(t('msgBreakOver', {n: _pomo.session}), 'info');
       }
-    } catch(e){ console.warn('[Nebula] buildBanner error:', e); }
+      document.getElementById('pomoBtnStart').style.display = 'inline-flex';
+      document.getElementById('pomoBtnPause').style.display = 'none';
+      updatePomodoroUI();
+    } else {
+      updatePomodoroUI();
+    }
+  }, 1000);
+}
+
+function pomodoroPause() {
+  clearInterval(_pomo.interval);
+  _pomo.running = false;
+  document.getElementById('pomoBtnStart').style.display = 'inline-flex';
+  document.getElementById('pomoBtnPause').style.display = 'none';
+}
+
+function pomodoroReset() {
+  clearInterval(_pomo.interval);
+  _pomo.running = false;
+  _pomo.isBreak = false;
+  _pomo.totalSecs = POMO_WORK_SECS;
+  _pomo.remainingSecs = POMO_WORK_SECS;
+  document.getElementById('pomoBtnStart').style.display = 'inline-flex';
+  document.getElementById('pomoBtnPause').style.display = 'none';
+  updatePomodoroUI();
+}
+
+function updatePomodoroUI() {
+  var mins = Math.floor(_pomo.remainingSecs / 60);
+  var secs = _pomo.remainingSecs % 60;
+  var timeStr = (mins < 10 ? '0' : '') + mins + ':' + (secs < 10 ? '0' : '') + secs;
+  var displayEl  = document.getElementById('pomoTimeDisplay');
+  var progressEl = document.getElementById('pomoProgressCircle');
+  var modeBadge  = document.getElementById('pomoModeBadge');
+  var sessionLbl = document.getElementById('pomoSessionLabel');
+  if (!displayEl || !progressEl || !modeBadge || !sessionLbl) return;
+
+  displayEl.textContent = timeStr;
+
+  var pct = _pomo.remainingSecs / _pomo.totalSecs;
+  var offset = POMO_CIRCUMFERENCE * (1 - pct);
+  progressEl.style.strokeDashoffset = offset;
+
+  if (_pomo.isBreak) {
+    progressEl.style.stroke = 'var(--neon-blue)';
+    modeBadge.textContent = t('pomoBreakTime');
+    modeBadge.className = 'pomodoro-mode-badge break';
+    sessionLbl.textContent = t('pomoSessionLabel', {n: _pomo.session, mode: t('pomoBreakMode')});
+  } else {
+    progressEl.style.stroke = 'var(--neon-green)';
+    modeBadge.textContent = t('pomoWorkSession');
+    modeBadge.className = 'pomodoro-mode-badge work';
+    sessionLbl.textContent = t('pomoSessionLabel', {n: _pomo.session, mode: t('pomoWorkMode')});
+  }
+}
+
+// ===================== FEATURE 3: AI INSIGHTS =====================
+function computeNebulaInsights() {
+  var insights = [];
+  var completions = state.completions;
+  var habits = state.habits;
+  if (!habits || habits.length === 0) {
+    insights.push({ color: 'var(--neon-blue)', text: 'Add your first habit in <strong>Setup</strong> to unlock personalized recommendations.' });
+    return insights;
   }
 
-  try {
-    if(isStandalone() || recentlyDismissed()) return;
+  // 1. Best streak day of week
+  var dayCounts = [0,0,0,0,0,0,0];
+  var dayTotals = [0,0,0,0,0,0,0];
+  var dayNames  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  Object.keys(completions).forEach(function(k) {
+    var d = new Date(k); var dow = d.getDay();
+    var done = habits.filter(function(h) { return completions[k] && completions[k][h.id]; }).length;
+    dayCounts[dow] += done; dayTotals[dow]++;
+  });
+  var bestDow = 0, bestAvg = 0;
+  for (var i = 0; i < 7; i++) {
+    var avg = dayTotals[i] ? dayCounts[i] / dayTotals[i] : 0;
+    if (avg > bestAvg) { bestAvg = avg; bestDow = i; }
+  }
+  if (dayTotals[bestDow] > 0) {
+    insights.push({ color: 'var(--neon-green)', text: 'You perform best on <strong>' + dayNames[bestDow] + 's</strong> — that\'s your power day. Plan your hardest habits there.' });
+  }
 
-    var deferredPrompt = null;
-    window.addEventListener('beforeinstallprompt', function(e){
-      try {
-        e.preventDefault();
-        deferredPrompt = e;
-        setTimeout(function(){
-          try {
-            buildBanner({
-              title: 'تثبيت Nebula على جهازك',
-              sub: 'استمتع بتجربة كاملة بدون شريط المتصفح وبدون إنترنت.',
-              primary: 'تثبيت',
-              close: 'لاحقاً',
-              onPrimary: function(){
-                try {
-                  if(!deferredPrompt) return;
-                  deferredPrompt.prompt();
-                  deferredPrompt.userChoice.then(function(choice){
-                    deferredPrompt = null;
-                    if(choice && choice.outcome === 'accepted'){ hideBanner(); }
-                    else { dismiss(); }
-                  }).catch(function(){ dismiss(); });
-                } catch(e2){ dismiss(); }
-              }
-            });
-          } catch(e2){}
-        }, 1800);
-      } catch(e3){}
+  // 2. Most neglected category
+  var catDone = {}, catTotal = {};
+  habits.forEach(function(h) {
+    var cat = h.category;
+    if (!catDone[cat]) { catDone[cat] = 0; catTotal[cat] = 0; }
+  });
+  Object.keys(completions).forEach(function(k) {
+    habits.forEach(function(h) {
+      var cat = h.category;
+      catTotal[cat] = (catTotal[cat]||0) + 1;
+      if (completions[k] && completions[k][h.id]) catDone[cat] = (catDone[cat]||0) + 1;
     });
-
-    window.addEventListener('appinstalled', function(){
-      try { deferredPrompt = null; hideBanner(); } catch(e){}
-    });
-
-    if(isIOSSafari()){
-      setTimeout(function(){
-        try {
-          if(isStandalone() || recentlyDismissed()) return;
-          buildBanner({
-            title: 'أضف Nebula إلى الشاشة الرئيسية',
-            sub: 'لتثبيت التطبيق: اضغط على زر المشاركة ⬆️ ثم اختر «إضافة إلى الشاشة الرئيسية».',
-            close: 'حسناً'
-          });
-        } catch(e){}
-      }, 2500);
+  });
+  var worstCat = null, worstPct = 101;
+  Object.keys(catTotal).forEach(function(cat) {
+    if (catTotal[cat] > 0) {
+      var pct = (catDone[cat]||0) / catTotal[cat] * 100;
+      if (pct < worstPct) { worstPct = pct; worstCat = cat; }
     }
-  } catch(e){ console.warn('[Nebula] A2HS inner setup failed:', e); }
+  });
+  if (worstCat) {
+    insights.push({ color: 'var(--neon-amber)', text: '<strong>' + worstCat + '</strong> has the lowest completion rate (' + Math.round(worstPct) + '%). Consider making it your first daily task.' });
+  }
+
+  // 3. Today's completion momentum
+  var tKey = fmtDate(new Date());
+  var todayDone  = habits.filter(function(h) { return completions[tKey] && completions[tKey][h.id]; }).length;
+  var todayTotal = habits.length;
+  if (todayDone === todayTotal && todayTotal > 0) {
+    insights.push({ color: 'var(--neon-purple)', text: '🔥 You\'ve completed <strong>all ' + todayTotal + ' habits</strong> today! Perfect day — XP bonus earned.' });
+  } else if (todayDone > 0 && todayDone < todayTotal) {
+    insights.push({ color: 'var(--neon-blue)', text: 'You\'re <strong>' + todayDone + '/' + todayTotal + '</strong> today. Just ' + (todayTotal - todayDone) + ' habit' + (todayTotal-todayDone>1?'s':'') + ' left — you\'re almost there!' });
+  } else if (todayDone === 0) {
+    insights.push({ color: 'var(--neon-pink)', text: 'No habits logged today yet. <strong>Start now</strong> — even one completion builds momentum.' });
+  }
+
+  // 4. XP milestone hint
+  loadXP();
+  var lvl = _xpState.level;
+  var nextThresh = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+  var remaining  = Math.max(0, nextThresh - _xpState.xp);
+  var habitsNeeded = Math.ceil(remaining / XP_PER_COMPLETION);
+  if (remaining > 0 && habitsNeeded > 0) {
+    insights.push({ color: 'var(--neon-purple)', text: 'Complete <strong>' + habitsNeeded + ' more habit' + (habitsNeeded>1?'s':'') + '</strong> to reach <strong>Level ' + (lvl+1) + '</strong>. Keep going!' });
+  }
+
+  return insights.slice(0, 4);
+}
+
+function renderNebulaInsights() {
+  var body = document.getElementById('nebulaInsightsBody');
+  if (!body) return;
+  var insights = computeNebulaInsights();
+  body.innerHTML = '';
+  insights.forEach(function(ins) {
+    var item = document.createElement('div');
+    item.className = 'insight-item';
+    item.innerHTML =
+      '<div class="insight-dot" style="color:' + ins.color + ';background:' + ins.color + '"></div>' +
+      '<div class="insight-text">' + ins.text + '</div>';
+    body.appendChild(item);
+  });
+}
+
+// ===================== HOOK NEW FEATURES INTO EXISTING FLOW =====================
+// Patch toggleHabitDay to award XP on completion (non-destructive wrap)
+var _origToggleHabitDay = toggleHabitDay;
+toggleHabitDay = function(dateKey, hid, el) {
+  var wasChecked = !!(state.completions[dateKey] && state.completions[dateKey][hid]);
+  _origToggleHabitDay(dateKey, hid, el);
+  // Award XP only when marking as complete (not unchecking)
+  var isNowChecked = !!(state.completions[dateKey] && state.completions[dateKey][hid]);
+  if (!wasChecked && isNowChecked) { addXP(XP_PER_COMPLETION); }
+  renderXPBar();
+  renderNebulaInsights();
+};
+
+// Patch renderAll to always refresh XP bar and insights
+var _origRenderAll = renderAll;
+renderAll = function() {
+  _origRenderAll();
+  renderXPBar();
+  renderNebulaInsights();
+};
+
+// Close confirm overlay on outside click
+document.addEventListener('click', function(e){
+  var overlay = document.getElementById('confirmOverlay');
+  if(e.target === overlay) hideResetConfirm();
+  var ltOverlay = document.getElementById('ltModalOverlay');
+  if(e.target === ltOverlay) ltCloseAddModal();
+});
+
+// Keyboard: Escape closes modals
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape' || e.keyCode===27){
+    closeModal();
+    hideResetConfirm();
+    ltCloseAddModal();
+  }
+});
+
+// DOMContentLoaded — cross-browser safe
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  NEW FEATURE 1 — INTERVAL & LONG-TERM HABITS SYSTEM                ║
+// ║  Storage key: nebula_longTermHabits  (fully isolated)              ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+var LT_STORAGE_KEY = 'nebula_longTermHabits';
+var _ltHabits = [];   // [{id, name, emoji, intervalDays, xpReward, lastCompleted}]
+
+function ltLoad() {
+  try {
+    var raw = _safeStorage.getItem(LT_STORAGE_KEY);
+    if (raw) { var p = JSON.parse(raw); if (Array.isArray(p)) _ltHabits = p; }
+  } catch(e) {}
+}
+
+function ltSave() {
+  try { _safeStorage.setItem(LT_STORAGE_KEY, JSON.stringify(_ltHabits)); } catch(e) {}
+}
+
+// Compute how many days until next due for a habit
+function ltDaysUntilDue(habit) {
+  if (!habit.lastCompleted) return 0; // never done → overdue/due now
+  var last = new Date(habit.lastCompleted);
+  var next = new Date(last.getTime() + habit.intervalDays * 86400000);
+  var now2 = new Date();
+  var diffMs = next.getTime() - now2.getTime();
+  return Math.ceil(diffMs / 86400000);
+}
+
+function ltIsDue(habit) {
+  return ltDaysUntilDue(habit) <= 0;
+}
+
+function ltRenderGrid() {
+  var grid = document.getElementById('ltGrid');
+  if (!grid) return;
+  ltLoad();
+
+  if (_ltHabits.length === 0) {
+    grid.innerHTML =
+      '<div class="lt-empty">' +
+        '<i class="fas fa-hourglass-start"></i>' +
+        '<div style="font-size:14px;color:var(--text-secondary);font-weight:600;margin-bottom:4px;">' + t('ltEmptyTitle') + '</div>' +
+        '<div>' + t('ltEmptyDesc') + '</div>' +
+      '</div>';
+    return;
+  }
+
+  grid.innerHTML = '';
+  _ltHabits.forEach(function(habit) {
+    var daysLeft = ltDaysUntilDue(habit);
+    var due = ltIsDue(habit);
+    var neverDone = !habit.lastCompleted;
+    var pct = 0;
+    if (!neverDone && !due) {
+      pct = Math.max(0, Math.min(100, 100 - (daysLeft / habit.intervalDays) * 100));
+    } else if (due) {
+      pct = 100;
+    }
+
+    var card = document.createElement('div');
+    card.className = 'lt-card' + (due ? ' lt-due' : '');
+    card.setAttribute('data-ltid', habit.id);
+
+    var countdownNumClass = due ? (neverDone ? 'lt-countdown-num' : 'lt-countdown-num overdue') : 'lt-countdown-num';
+    var countdownVal, countdownLabel;
+    if (neverDone) {
+      countdownVal = '!';
+      countdownLabel = t('ltNotStarted');
+    } else if (due) {
+      var overdueDays = Math.abs(daysLeft);
+      countdownVal = overdueDays;
+      countdownLabel = overdueDays === 0 ? t('ltDueToday') : overdueDays + ' ' + t('ltDaysOverdue');
+    } else {
+      countdownVal = daysLeft;
+      countdownLabel = daysLeft + ' ' + t('ltDaysRemaining');
+    }
+
+    var intervalLabel = '';
+    if (habit.intervalDays === 1) intervalLabel = t('ltIntervalEveryDay');
+    else if (habit.intervalDays % 30 === 0) intervalLabel = t('ltIntervalEveryMonths', {n: habit.intervalDays / 30});
+    else if (habit.intervalDays % 7 === 0) intervalLabel = t('ltIntervalEveryWeeks', {n: habit.intervalDays / 7});
+    else intervalLabel = t('ltIntervalEveryDays', {n: habit.intervalDays});
+
+    var daysHtml = '';
+    if (habit.specificDays && habit.specificDays.length > 0) {
+      daysHtml = '<div class="lt-card-days"><i class="fas fa-calendar-week"></i>' + t('ltEvery') + ' ' + escapeHtml(habit.specificDays.join(', ')) + '</div>';
+    }
+    if (habit.reminderTime) {
+      daysHtml += '<div class="lt-card-reminder"><i class="fas fa-bell"></i>' + escapeHtml(habit.reminderTime) + '</div>';
+    }
+
+    card.innerHTML =
+      '<div class="lt-card-header">' +
+        '<div class="lt-card-left">' +
+          '<div class="lt-card-emoji">' + (habit.emoji || '🔁') + '</div>' +
+          '<div class="lt-card-info">' +
+            '<div class="lt-card-name">' + escapeHtml(habit.name) + '</div>' +
+            '<div class="lt-card-interval"><i class="fas fa-redo" style="font-size:9px;margin-inline-end:4px;opacity:0.6;"></i>' + intervalLabel + '</div>' +
+            daysHtml +
+          '</div>' +
+        '</div>' +
+        '<button class="lt-card-del" onclick="ltDeleteHabit(\'' + habit.id + '\')" title="Delete"><i class="fas fa-trash-alt"></i></button>' +
+      '</div>' +
+      '<div class="lt-countdown">' +
+        '<div class="' + countdownNumClass + '">' + countdownVal + '</div>' +
+        '<div class="lt-countdown-label">' + escapeHtml(String(countdownLabel)) + '</div>' +
+      '</div>' +
+      '<div class="lt-progress-wrap"><div class="lt-progress-fill" style="width:' + pct + '%;' + (due ? 'background:var(--neon-amber);' : '') + '"></div></div>' +
+      '<button class="lt-complete-btn' + (due ? ' lt-due-btn' : '') + '" onclick="ltComplete(\'' + habit.id + '\')">' +
+        '<i class="fas fa-' + (due ? 'star' : 'check') + '"></i> ' + (due ? t('ltMarkComplete') : t('ltCompleteEarly')) +
+      '</button>' +
+      '<div class="lt-xp-burst">' + t('ltXpBurst', {xp: habit.xpReward}) + '</div>';
+
+    grid.appendChild(card);
+  });
+}
+
+function ltOpenAddModal() {
+  document.getElementById('ltName').value = '';
+  document.getElementById('ltEmoji').value = '🔁';
+  document.getElementById('ltIntervalDays').value = '7';
+  document.getElementById('ltIntervalUnit').value = 'days';
+  document.getElementById('ltXpReward').value = '500';
+  // Reset day buttons
+  var dayBtns = document.querySelectorAll('#ltDaysRow .lt-day-btn');
+  for (var i = 0; i < dayBtns.length; i++) {
+    dayBtns[i].classList.remove('selected', 'selected-green');
+  }
+  var ltTimeEl = document.getElementById('ltReminderTime');
+  if(ltTimeEl) ltTimeEl.value = '';
+  document.getElementById('ltModalOverlay').classList.add('show');
+  setTimeout(function(){ document.getElementById('ltName').focus(); }, 80);
+}
+
+function ltToggleDay(btn) {
+  btn.classList.toggle('selected');
+  // Count selected; if ≥3 use green accent for visual variety
+  var allBtns = document.querySelectorAll('#ltDaysRow .lt-day-btn');
+  var selCount = 0;
+  for (var i = 0; i < allBtns.length; i++) { if (allBtns[i].classList.contains('selected')) selCount++; }
+  for (var j = 0; j < allBtns.length; j++) {
+    if (allBtns[j].classList.contains('selected')) {
+      if (selCount >= 3) { allBtns[j].classList.add('selected-green'); allBtns[j].classList.remove('selected'); }
+      else { allBtns[j].classList.remove('selected-green'); allBtns[j].classList.add('selected'); }
+    }
+  }
+}
+
+function ltCloseAddModal() {
+  document.getElementById('ltModalOverlay').classList.remove('show');
+}
+
+function ltSaveNewHabit() {
+  var name = document.getElementById('ltName').value.trim();
+  if (!name) { showToast(t('msgEnterLtName'), 'info'); return; }
+  var emoji = document.getElementById('ltEmoji').value.trim() || '🔁';
+  var num   = parseInt(document.getElementById('ltIntervalDays').value) || 7;
+  var unit  = document.getElementById('ltIntervalUnit').value;
+  var xpRew = parseInt(document.getElementById('ltXpReward').value) || 500;
+  var days  = num;
+  if (unit === 'weeks')  days = num * 7;
+  if (unit === 'months') days = num * 30;
+  // Capture selected specific days
+  var specificDays = [];
+  var dayBtns = document.querySelectorAll('#ltDaysRow .lt-day-btn');
+  for (var i = 0; i < dayBtns.length; i++) {
+    if (dayBtns[i].classList.contains('selected') || dayBtns[i].classList.contains('selected-green')) {
+      specificDays.push(dayBtns[i].getAttribute('data-day'));
+    }
+  }
+  var reminderTime = (document.getElementById('ltReminderTime').value || '').trim();
+  ltLoad();
+  _ltHabits.push({
+    id: 'lt' + Date.now(),
+    name: name, emoji: emoji,
+    intervalDays: days, xpReward: xpRew,
+    lastCompleted: null,
+    specificDays: specificDays,
+    reminderTime: reminderTime || null
+  });
+  ltSave();
+  ltCloseAddModal();
+  ltRenderGrid();
+  nebulaBadgeUpdate();
+  showToast(t('msgLtAdded'), 'success');
+}
+
+function ltComplete(habitId) {
+  ltLoad();
+  var habit = null;
+  for (var i = 0; i < _ltHabits.length; i++) {
+    if (_ltHabits[i].id === habitId) { habit = _ltHabits[i]; break; }
+  }
+  if (!habit) return;
+  habit.lastCompleted = Date.now();
+  ltSave();
+
+  // Award large XP burst
+  addXP(habit.xpReward);
+  renderXPBar();
+  renderNebulaInsights();
+
+  // Confetti burst
+  if (typeof confetti === 'function') {
+    confetti({ particleCount: 160, spread: 90, origin: { y: 0.55 }, colors: ['#fbbf24','#a855f7','#34d399','#f472b6','#38bdf8'] });
+    setTimeout(function() {
+      confetti({ particleCount: 80, angle: 60,  spread: 60, origin: { x: 0, y: 0.6 }, colors: ['#fbbf24','#a855f7'] });
+      confetti({ particleCount: 80, angle: 120, spread: 60, origin: { x: 1, y: 0.6 }, colors: ['#34d399','#38bdf8'] });
+    }, 350);
+  }
+
+  // Level-up overlay re-use for XP burst feedback
+  var overlay = document.getElementById('levelUpOverlay');
+  var text    = document.getElementById('levelUpText');
+  if (overlay && text) {
+    text.textContent = '⭐ +' + habit.xpReward + ' XP — ' + habit.name + '!';
+    overlay.classList.remove('show');
+    void overlay.offsetWidth;
+    overlay.classList.add('show');
+    setTimeout(function() { overlay.classList.remove('show'); }, 2400);
+  }
+
+  ltRenderGrid();
+  nebulaBadgeUpdate();
+  showToast(t('msgLtCompleted', {xp: habit.xpReward}), 'success');
+}
+
+function ltDeleteHabit(habitId) {
+  ltLoad();
+  _ltHabits = _ltHabits.filter(function(h) { return h.id !== habitId; });
+  ltSave();
+  ltRenderGrid();
+  nebulaBadgeUpdate();
+  showToast(t('msgLtRemoved'), 'info');
+}
+
+function ltCountDueHabits() {
+  ltLoad();
+  return _ltHabits.filter(ltIsDue).length;
+}
+
+function ltInit() {
+  ltLoad();
+  ltRenderGrid();
+  // Hide notif bar if already granted or dismissed
+  ltUpdateNotifBar();
+}
+
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  NEW FEATURE 2 — SMART LOCAL PUSH NOTIFICATIONS                    ║
+// ║  Storage keys: nebula_notif_dismissed, nebula_notif_fired          ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+var _notifDismissed = false;
+// Track which notification keys fired today to avoid spamming
+function _notifTodayKey(tag) { return 'nebula_notif_fired_' + tag + '_' + fmtDate(new Date()); }
+
+function ltUpdateNotifBar() {
+  var bar = document.getElementById('notifPermissionBar');
+  if (!bar) return;
+  var dismissed = _safeStorage.getItem('nebula_notif_dismissed') === '1';
+  var granted   = ('Notification' in window) && Notification.permission === 'granted';
+  var supported = 'Notification' in window;
+  if (!supported || dismissed || granted) {
+    bar.classList.add('hidden');
+  } else {
+    bar.classList.remove('hidden');
+  }
+}
+
+function ltDismissNotifBar() {
+  _safeStorage.setItem('nebula_notif_dismissed', '1');
+  ltUpdateNotifBar();
+}
+
+function ltRequestNotificationPermission() {
+  if (!('Notification' in window)) {
+    showToast('Notifications not supported in this browser', 'info');
+    return;
+  }
+  Notification.requestPermission().then(function(perm) {
+    ltUpdateNotifBar();
+    if (perm === 'granted') {
+      showToast('Notifications enabled! 🔔', 'success');
+      nebulaNotifCheckDueHabits();
+    } else {
+      showToast('Notifications blocked — you can enable in browser settings', 'info');
+    }
+  }).catch(function() {
+    // Older browsers use callback style
+    Notification.requestPermission(function(perm) {
+      ltUpdateNotifBar();
+      if (perm === 'granted') {
+        showToast('Notifications enabled! 🔔', 'success');
+        nebulaNotifCheckDueHabits();
+      }
+    });
+  });
+}
+
+function _nebulaFireNotif(title, body, tag, icon) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  var firedKey = _notifTodayKey(tag);
+  if (_safeStorage.getItem(firedKey) === '1') return; // already fired today
+  try {
+    var opts = { body: body, tag: tag, icon: icon || 'logo.png', badge: 'logo.png', silent: false };
+    new Notification(title, opts);
+    _safeStorage.setItem(firedKey, '1');
+  } catch(e) {}
+}
+
+function nebulaNotifCheckDueHabits() {
+  ltLoad();
+  var dueList = _ltHabits.filter(ltIsDue);
+  if (dueList.length === 0) return;
+  var names = dueList.map(function(h){ return h.emoji + ' ' + h.name; }).join(', ');
+  var title = dueList.length === 1
+    ? '⏰ Interval Habit Due!'
+    : '⏰ ' + dueList.length + ' Interval Habits Due!';
+  var body = names + '\nOpen Nebula to complete and collect XP!';
+  _nebulaFireNotif(title, body, 'lt-due', 'logo.png');
+}
+
+function nebulaNotifCheckEveningReminder() {
+  var h = new Date().getHours();
+  if (h < 17 || h >= 22) return; // only 17:00–22:00
+  var tKey = fmtDate(new Date());
+  var totalHabits = state.habits.length;
+  if (totalHabits === 0) return;
+  var doneTodayCount = state.habits.filter(function(hb) {
+    return state.completions[tKey] && state.completions[tKey][hb.id];
+  }).length;
+  if (doneTodayCount >= totalHabits) return; // all done!
+  var remaining = totalHabits - doneTodayCount;
+  _nebulaFireNotif(
+    '🌙 Evening Habit Reminder',
+    'You have ' + remaining + ' habit' + (remaining > 1 ? 's' : '') + ' left today. Don\'t break your streak — open Nebula now!',
+    'evening-reminder',
+    'logo.png'
+  );
+}
+
+function nebulaNotifInit() {
+  if (!('Notification' in window)) return;
+  ltUpdateNotifBar();
+  if (Notification.permission !== 'granted') return;
+  // Run checks on app open
+  setTimeout(nebulaNotifCheckDueHabits, 1500);
+  setTimeout(nebulaNotifCheckEveningReminder, 2500);
+  // Re-check every hour while the app is open
+  setInterval(nebulaNotifCheckDueHabits, 3600000);
+  setInterval(nebulaNotifCheckEveningReminder, 3600000);
+}
+
+// ╔══════════════════════════════════════════════════════════════════════╗
+// ║  NEW FEATURE 3 — APP BADGE API + PWA SHORTCUTS PREPARATION         ║
+// ╚══════════════════════════════════════════════════════════════════════╝
+function nebulaBadgeUpdate() {
+  if (!('setAppBadge' in navigator)) return;
+  try {
+    var tKey = fmtDate(new Date());
+    var totalDaily    = state.habits.length;
+    var doneDaily     = state.habits.filter(function(hb) {
+      return state.completions[tKey] && state.completions[tKey][hb.id];
+    }).length;
+    var pendingDaily  = Math.max(0, totalDaily - doneDaily);
+    var pendingLtDue  = ltCountDueHabits();
+    var badgeCount    = pendingDaily + pendingLtDue;
+    if (badgeCount > 0) {
+      navigator.setAppBadge(badgeCount).catch(function(){});
+    } else {
+      navigator.clearAppBadge().catch(function(){});
+    }
+  } catch(e) {}
+}
+
+// Patch toggleHabitDay to also update the badge
+var _origToggleHabitDayBadge = toggleHabitDay;
+toggleHabitDay = function(dateKey, hid, el) {
+  _origToggleHabitDayBadge(dateKey, hid, el);
+  nebulaBadgeUpdate();
+};
+
+// PWA Shortcuts: inject an enriched manifest dynamically with shortcuts
+// (replaces the inline data-URI manifest so shortcuts work on supported platforms)
+(function() {
+  var shortcutManifest = {
+    name: "Nebula \u2014 Habit Tracker",
+    short_name: "Nebula",
+    start_url: "./",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#0b0f17",
+    theme_color: "#0b0f17",
+    lang: "ar",
+    shortcuts: [
+      {
+        name: "Daily Tracker",
+        short_name: "Tracker",
+        description: "Open the monthly heatmap tracker",
+        url: "./?shortcut=tracker",
+        icons: [{ src: "logo.png", sizes: "96x96" }]
+      },
+      {
+        name: "Notes & Journal",
+        short_name: "Journal",
+        description: "Open the notes and journal section",
+        url: "./?shortcut=notes",
+        icons: [{ src: "logo.png", sizes: "96x96" }]
+      },
+      {
+        name: "Interval Habits",
+        short_name: "Intervals",
+        description: "View due interval & long-term habits",
+        url: "./?shortcut=longterm",
+        icons: [{ src: "logo.png", sizes: "96x96" }]
+      }
+    ],
+    icons: [
+      { src: "logo.png", sizes: "192x192", type: "image/png" },
+      { src: "logo.png", sizes: "512x512", type: "image/png" }
+    ]
+  };
+
+  try {
+    var blob = new Blob([JSON.stringify(shortcutManifest)], { type: 'application/manifest+json' });
+    var url  = URL.createObjectURL(blob);
+    var existing = document.querySelector('link[rel="manifest"]');
+    if (existing) {
+      existing.href = url;
+    } else {
+      var link = document.createElement('link');
+      link.rel  = 'manifest';
+      link.href = url;
+      document.head.appendChild(link);
+    }
+  } catch(e) {}
+
+  // Handle shortcut deep-link on app open
+  try {
+    var urlParams = new URLSearchParams(window.location.search);
+    var sc = urlParams.get('shortcut');
+    if (sc) {
+      setTimeout(function() {
+        var navItems = document.querySelectorAll('.nav-item');
+        for (var i = 0; i < navItems.length; i++) {
+          var onclick = navItems[i].getAttribute('onclick') || '';
+          if (onclick.indexOf("'" + sc + "'") !== -1 || onclick.indexOf('"' + sc + '"') !== -1) {
+            navItems[i].click();
+            break;
+          }
+        }
+      }, 400);
+    }
+  } catch(e) {}
 })();
-} catch(e){ console.warn('[Nebula] A2HS banner module failed:', e); }
+
+// Patch _origRenderAll to also update badge on every render
+var _origRenderAllBadge = renderAll;
+renderAll = function() {
+  _origRenderAllBadge();
+  nebulaBadgeUpdate();
+};
+</script>
+
+<!-- ============================================================
+     NEBULA — LICENSE KEY ACTIVATION SYSTEM
+     Placed just before </body> so all DOM is ready.
+     Does NOT touch or interfere with the Domain Lock in <head>.
+============================================================ -->
+
+<!-- Activation overlay (hidden once activated) -->
+<div id="nebula-license-overlay" style="display:none;">
+  <div id="nebula-license-box">
+    <div id="nebula-license-logo">&#9733;</div>
+    <div id="nebula-license-title">Activate Nebula</div>
+    <div id="nebula-license-sub">Enter your license key to unlock the application.<br>An internet connection is required for verification.</div>
+    <label id="nebula-license-label" for="nebula-license-input">License Key</label>
+    <input id="nebula-license-input" type="text" placeholder="Enter License Key"
+           spellcheck="false" autocomplete="off" autocorrect="off"
+           autocapitalize="characters" maxlength="60">
+    <button id="nebula-license-btn">Activate</button>
+    <div id="nebula-license-status"></div>
+    <div id="nebula-license-footer">Need a key? Contact your administrator.</div>
+  </div>
+</div>
+
+<style>
+/* ── Overlay backdrop ─────────────────────────────────────── */
+#nebula-license-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  background: #0b0f17;
+  display: flex !important;   /* overridden to none by JS when activated */
+  align-items: center;
+  justify-content: center;
+  font-family: "Inter","Tajawal","Cairo",system-ui,sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+/* ── Card ─────────────────────────────────────────────────── */
+#nebula-license-box {
+  background: #111827;
+  border: 1px solid rgba(168,85,247,0.28);
+  border-radius: 22px;
+  padding: 46px 42px 42px;
+  width: 460px;
+  max-width: calc(100vw - 32px);
+  box-shadow: 0 0 80px rgba(168,85,247,0.14), 0 28px 72px rgba(0,0,0,0.65);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: _nlic_fadein_ 0.42s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes _nlic_fadein_ {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* ── Logo badge ───────────────────────────────────────────── */
+#nebula-license-logo {
+  width: 58px; height: 58px;
+  border-radius: 17px;
+  background: linear-gradient(135deg,#a855f7,#f472b6);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 0 32px rgba(168,85,247,0.5);
+  margin-bottom: 24px;
+  font-size: 26px;
+}
+/* ── Title / sub ──────────────────────────────────────────── */
+#nebula-license-title {
+  font-size: 23px; font-weight: 800; color: #f0f4f8;
+  letter-spacing: -0.4px; margin-bottom: 7px; text-align: center;
+}
+#nebula-license-sub {
+  font-size: 13px; color: #64748b;
+  margin-bottom: 32px; text-align: center; line-height: 1.65;
+}
+/* ── Label ────────────────────────────────────────────────── */
+#nebula-license-label {
+  width: 100%;
+  font-size: 11.5px; font-weight: 700; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  margin-bottom: 9px;
+}
+/* ── Input ────────────────────────────────────────────────── */
+#nebula-license-input {
+  width: 320px; max-width: 100%;
+  background: #1a2233;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: 11px;
+  padding: 14px 16px;
+  color: #f0f4f8; font-size: 14px;
+  font-family: inherit; font-weight: 500; letter-spacing: 0.6px;
+  outline: none;
+  transition: border-color .25s, box-shadow .25s;
+  text-align: center;
+}
+#nebula-license-input:focus {
+  border-color: rgba(168,85,247,.75);
+  box-shadow: 0 0 0 3px rgba(168,85,247,.15);
+}
+#nebula-license-input::placeholder { color: #2d3a50; }
+#nebula-license-input:disabled { opacity: .5; cursor: not-allowed; }
+/* ── Button ───────────────────────────────────────────────── */
+#nebula-license-btn {
+  margin-top: 14px;
+  width: 320px; max-width: 100%;
+  padding: 14px 24px;
+  border: none; border-radius: 11px; cursor: pointer;
+  background: linear-gradient(135deg,#a855f7,#f472b6);
+  color: #fff; font-size: 14px; font-weight: 700;
+  font-family: inherit; letter-spacing: .3px;
+  box-shadow: 0 4px 26px rgba(168,85,247,.42);
+  transition: transform .2s, box-shadow .2s, opacity .2s;
+}
+#nebula-license-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 36px rgba(168,85,247,.58);
+}
+#nebula-license-btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+/* ── Status message ───────────────────────────────────────── */
+#nebula-license-status {
+  margin-top: 13px;
+  min-height: 38px; width: 320px; max-width: 100%;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8px; border-radius: 9px; padding: 9px 14px;
+  font-size: 12.5px; font-weight: 600;
+  opacity: 0; transition: opacity .2s;
+}
+#nebula-license-status.show { opacity: 1; }
+#nebula-license-status.err  { background:rgba(239,68,68,.09); border:1px solid rgba(239,68,68,.22); color:#ef4444; }
+#nebula-license-status.warn { background:rgba(251,191,36,.09); border:1px solid rgba(251,191,36,.22); color:#fbbf24; }
+#nebula-license-status.ok   { background:rgba(52,211,153,.09); border:1px solid rgba(52,211,153,.22); color:#34d399; }
+#nebula-license-status.info { background:rgba(56,189,248,.09); border:1px solid rgba(56,189,248,.22); color:#38bdf8; }
+/* ── Spinner ──────────────────────────────────────────────── */
+@keyframes _nlic_spin_ { to { transform: rotate(360deg); } }
+._nlic_spinner_ {
+  width: 15px; height: 15px; flex-shrink: 0;
+  border: 2px solid rgba(56,189,248,.25);
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: _nlic_spin_ .7s linear infinite;
+}
+/* ── Footer note ──────────────────────────────────────────── */
+#nebula-license-footer {
+  margin-top: 26px;
+  font-size: 11px; color: #2d3a50; text-align: center; line-height: 1.6;
+}
+</style>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Configuration ──────────────────────────────────────── */
+  var LS_KEY       = 'nebula_activated';
+  var HASH_URL     = 'https://raw.githubusercontent.com/fairytaledesign41-ism/nepula/refs/heads/main/nebula-license-hashes.txt';
+  var CACHE_TTL_MS = 24 * 60 * 60 * 1000; // re-verify every 24 h
+  var LS_CACHE_KEY = 'nebula_lic_cache';   // stores { hash, ts }
+
+  /* ── localStorage helpers ───────────────────────────────── */
+  function lsGet(k)    { try { return localStorage.getItem(k); }    catch(e){ return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); }        catch(e){ } }
+  function lsDel(k)    { try { localStorage.removeItem(k); }        catch(e){ } }
+
+  /* ── SHA-256 via Web Crypto ─────────────────────────────── */
+  function sha256(str) {
+    var encoded = new TextEncoder().encode(str);
+    return crypto.subtle.digest('SHA-256', encoded).then(function (buf) {
+      return Array.from(new Uint8Array(buf))
+        .map(function (b) { return ('00' + b.toString(16)).slice(-2); })
+        .join('');
+    });
+  }
+
+  /* ── Fetch remote hash list → Set of lowercase hex strings ─ */
+  function fetchHashes() {
+    return fetch(HASH_URL, { cache: 'no-store' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function (txt) {
+        var set = new Set();
+        txt.split(/\r?\n/).forEach(function (line) {
+          var h = line.trim().toLowerCase();
+          if (h.length === 64) set.add(h);
+        });
+        return set;
+      });
+  }
+
+  /* ── UI helpers ─────────────────────────────────────────── */
+  function setStatus(type, html) {
+    var el = document.getElementById('nebula-license-status');
+    if (!el) return;
+    el.className = 'show ' + type;
+    el.innerHTML = html;
+  }
+  function clearStatus() {
+    var el = document.getElementById('nebula-license-status');
+    if (el) { el.className = ''; el.innerHTML = ''; }
+  }
+  function setLocked(on) {
+    var inp = document.getElementById('nebula-license-input');
+    var btn = document.getElementById('nebula-license-btn');
+    if (inp) inp.disabled = on;
+    if (btn) btn.disabled = on;
+  }
+  function resetInputStyle() {
+    var inp = document.getElementById('nebula-license-input');
+    if (inp) { inp.style.borderColor = ''; inp.style.boxShadow = ''; }
+  }
+
+  /* ── Check if already activated ────────────────────────── */
+  function isActivated() {
+    /* Legacy flat flag */
+    if (lsGet(LS_KEY) === 'true') return true;
+    /* Cache record with TTL */
+    var raw = lsGet(LS_CACHE_KEY);
+    if (!raw) return false;
+    try {
+      var p = JSON.parse(raw);
+      return !!(p && p.hash && p.ts && (Date.now() - p.ts) < CACHE_TTL_MS);
+    } catch (e) { return false; }
+  }
+
+  /* ── Show / hide overlay ────────────────────────────────── */
+  var overlay = document.getElementById('nebula-license-overlay');
+
+  if (isActivated()) {
+    /* Already activated — hide overlay, let app run */
+    if (overlay) overlay.style.display = 'none';
+    return;
+  }
+
+  /* Not yet activated — show overlay */
+  if (overlay) overlay.style.display = 'flex';
+  var inp = document.getElementById('nebula-license-input');
+  if (inp) setTimeout(function () { inp.focus(); }, 150);
+
+  /* ── Core activation function ───────────────────────────── */
+  function activate() {
+    var input = document.getElementById('nebula-license-input');
+    if (!input) return;
+
+    var raw = input.value.trim().toUpperCase();
+    if (!raw) {
+      setStatus('warn', '<span>&#9888;</span> Please enter your license key.');
+      input.focus();
+      return;
+    }
+
+    setLocked(true);
+    setStatus('info',
+      '<div class="_nlic_spinner_"></div><span>Verifying license&hellip;</span>');
+
+    sha256(raw)
+      .then(function (hash) {
+        return fetchHashes().then(function (hashSet) {
+          return { hash: hash, valid: hashSet.has(hash) };
+        });
+      })
+      .then(function (result) {
+        if (result.valid) {
+          /* ✔ Valid — persist both flags and reload */
+          lsSet(LS_KEY, 'true');
+          lsSet(LS_CACHE_KEY, JSON.stringify({ hash: result.hash, ts: Date.now() }));
+          setStatus('ok', '<span>&#10004;</span> License verified! Loading&hellip;');
+          setTimeout(function () { location.reload(); }, 900);
+        } else {
+          /* ✘ Invalid */
+          setLocked(false);
+          setStatus('err',
+            '<svg width="14" height="14" viewBox="0 0 14 14" fill="none">' +
+            '<circle cx="7" cy="7" r="6.25" stroke="#ef4444" stroke-width="1.5"/>' +
+            '<line x1="7" y1="4" x2="7" y2="7.5" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round"/>' +
+            '<circle cx="7" cy="9.5" r="0.75" fill="#ef4444"/></svg>' +
+            ' Invalid license key! Please try again.');
+          /* Per spec, also show alert */
+          alert('Invalid license key!');
+          var i = document.getElementById('nebula-license-input');
+          if (i) {
+            i.style.borderColor = 'rgba(239,68,68,.6)';
+            i.style.boxShadow   = '0 0 0 3px rgba(239,68,68,.12)';
+            i.select();
+          }
+        }
+      })
+      .catch(function (err) {
+        setLocked(false);
+        setStatus('warn',
+          '<svg width="14" height="14" viewBox="0 0 14 14" fill="none">' +
+          '<circle cx="7" cy="7" r="6.25" stroke="#fbbf24" stroke-width="1.5"/>' +
+          '<line x1="7" y1="4" x2="7" y2="7.5" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round"/>' +
+          '<circle cx="7" cy="9.5" r="0.75" fill="#fbbf24"/></svg>' +
+          ' Could not reach the license server. Check your connection and retry.');
+        console.warn('[Nebula License] Fetch error:', err);
+      });
+  }
+
+  /* ── Event listeners ────────────────────────────────────── */
+  var btn = document.getElementById('nebula-license-btn');
+  var inputEl = document.getElementById('nebula-license-input');
+
+  if (btn) btn.addEventListener('click', activate);
+  if (inputEl) {
+    inputEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { activate(); return; }
+      clearStatus();
+      resetInputStyle();
+    });
+  }
+
+})();
 </script>
 </body>
 </html>
